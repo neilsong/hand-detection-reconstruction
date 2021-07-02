@@ -30,7 +30,9 @@ Dandan Shan, Jiaqi Geng*, Michelle Shu*, David F. Fouhey, CVPR 2020, Oral
 ## Install python dependencies
 
 - create conda environment with dependencies: `conda env create -f environment.yml`
-- activate environment: `conda activate obman_train`
+- activate environment: `conda activate hand-det-recon`
+- install detection dependencies: `conda install pytorch torchvision cudatoolkit=10.1 -c pytorch`
+- build detection libraries: `cd lib && python setup.py build develop`
 
 
 ## Install the MANO PyTorch layer
