@@ -1,5 +1,7 @@
 # Monocular RGB Hand-Object Detection and 3D Hand Reconstruction - Demo
 
+A fully-integrated, real-time, multi-focal hand and object detection and 3D hand reconstruction system. Hand detection and state/side classification are used to address limitations in 3D reconstruction model.
+# Papers
 ## Learning Joint Reconstruction of Hands and Manipulated Objects
 
 Yana Hasson, Gül Varol, Dimitris Tzionas, Igor Kalevatykh, Michael J. Black,  Ivan Laptev, Cordelia Schmid, CVPR 2019
@@ -17,8 +19,7 @@ Dandan Shan, Jiaqi Geng*, Michelle Shu*, David F. Fouhey, CVPR 2020, Oral
 
 # Get the code
 
-`git clone https://github.com/neilsong/hand-detection-reconstruction`
-`cd hand-detection-reconstruction`
+`git clone https://github.com/neilsong/hand-detection-reconstruction && cd hand-detection-reconstruction`
 
 # Download and prepare models
 ## Download model files
