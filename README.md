@@ -17,31 +17,10 @@ Dandan Shan, Jiaqi Geng*, Michelle Shu*, David F. Fouhey, CVPR 2020, Oral
 
 # Get the code
 
-`git clone https://github.com/neilsong/obman_train`
-`cd obman_train`
+`git clone https://github.com/neilsong/hand-detection-reconstruction`
+`cd hand-detection-reconstruction`
 
-# Download and prepare datasets
-
-## Download the ObMan dataset
-
-- Request the dataset on the [dataset page](https://www.di.ens.fr/willow/research/obman/data/)
-- Create a [symlink](https://www.cyberciti.biz/faq/creating-soft-link-or-symbolic-link/) `ln -s path/to/downloaded/obman datasymlinks/obman`
-- Download  ShapeNetCore v2 object meshes from the [ShapeNet official website](https://www.shapenet.org/)
-- Create a symlink `ln -s /sequoia/data2/dataset/shapenet/ShapeNetCore.v2 datasymlinks/ShapeNetCore.v2`
-
-Your data structure should now look like
-
-```
-obman_train/
-  datasymlinks/ShapeNetCore.v2
-  datasymlinks/obman
-```
-
-## Download the First-Person Hand Action Benchmark dataset
-
-- Follow the [official instructions](https://github.com/guiggh/hand_pose_action) to download the dataset
-
-
+# Download and prepare models
 ## Download model files
 
 - Download model files from [here](http://www.di.ens.fr/willow/research/obman/release_models.zip) `wget http://www.di.ens.fr/willow/research/obman/release_models.zip`
@@ -69,7 +48,7 @@ obman_train/
 - Your structure should look like this:
 
 ```
-obman_train/
+hand-detection-reconstruction/
   misc/
     mano/
       MANO_LEFT.pkl
@@ -84,36 +63,7 @@ obman_train/
 
 
 
-# Launch
-
-## Demo
-
-
-We provide a model trained on the synthetic ObMan dataset
-
-### Single image demo
-
-`python image_demo.py --resume release_models/obman/checkpoint.pth.tar`
-
-In this demo, both the original and flipped inputs are fed, and the outputs are therefore presented for the input treated as a right and a left hand side by side.
-
-Running the demo should produce the following outputs.
-
-<img src="readme_assets/images/can_in.png" width="20%">
-<img src="readme_assets/images/can_output.png" width="40%">
-
-You can also run this demo on data from the [First Hand Action Benchmark](https://github.com/guiggh/hand_pose_action)
-
-`python image_demo.py --image_path readme_assets/images/fhb_liquid_soap.jpeg --resume release_models/fhb/checkpoint.pth.tar`
-
-<img src="readme_assets/images/fhb_liq_soap_in.png" width="20%">
-<img src="readme_assets/images/fhb_liq_soap_out.png" width="40%">
-
-Note that the model trained on First Hand Action Benchmark strongly overfits to this dataset, and therefore performs poorly on 'in the wild' images.
-
-
-
-### Video demo
+# Demo
 
 You can test it on a recorded video or live using a webcam by launching :
 
@@ -135,10 +85,6 @@ Note that the video demo has some lag time, which comes from the visualization b
   - In addition to the models, we also provide a hand-only model trained on various hand datasets, including our ObMan dataset, that captures a wider variety of hand poses
   - to try it, launch `python webcam_demo.py --resume release_models/hands_only/checkpoint.pth.tar`
   - Note that this model also regresses a translation and scale parameter that allows to overlay the predicted 2D joints on the images according to an orthographic projection model
-
-## Training
-
-`python traineval.py --atlas_predict_trans --atlas_predict_scale --atlas_mesh --mano_use_shape --mano_use_pca --freeze_batchnorm --atlas_separate_encoder`
 
 # Citations
 
