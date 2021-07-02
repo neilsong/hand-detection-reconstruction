@@ -24,7 +24,7 @@ Dandan Shan, Jiaqi Geng*, Michelle Shu*, David F. Fouhey, CVPR 2020, Oral
 # Download and prepare models
 ## Download model files
 
-- Download model files from [here](http://www.di.ens.fr/willow/research/obman/release_models.zip) `wget http://www.di.ens.fr/willow/research/obman/release_models.zip`
+- Download model files from [here](http://www.di.ens.fr/willow/research/obman/release_models.zip) `wget http://www.di.ens.fr/willow/research/obman/release_models.zip` (Note: directly downloading the files is probably faster)
 - unzip `unzip release_models.zip`
 
 ## Install python dependencies
