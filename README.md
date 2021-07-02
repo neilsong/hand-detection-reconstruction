@@ -32,11 +32,9 @@ Dandan Shan, Jiaqi Geng*, Michelle Shu*, David F. Fouhey, CVPR 2020, Oral
 - create conda environment with dependencies: `conda env create -f environment.yml`
 - activate environment: `conda activate obman_train`
 
-
 ## Install the MANO PyTorch layer
 
 - Follow the instructions from [here](https://github.com/hassony2/manopth)
-
 
 ### Download the MANO model files
 
@@ -44,7 +42,6 @@ Dandan Shan, Jiaqi Geng*, Michelle Shu*, David F. Fouhey, CVPR 2020, Oral
 - Create an account by clicking *Sign Up* and provide your information
 - Download Models and Code (the downloaded file should have the format mano_v*_*.zip). Note that all code and data from this download falls under the [MANO license](http://mano.is.tue.mpg.de/license).
 - unzip and copy the content of the *models* folder into the misc/mano folder
-
 
 - Your structure should look like this:
 
@@ -60,9 +57,6 @@ hand-detection-reconstruction/
     hands_only/
 
 ```
-
-
-
 
 # Demo
 
