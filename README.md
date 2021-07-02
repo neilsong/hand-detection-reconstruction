@@ -77,10 +77,7 @@ Note that the video demo has some lag time, which comes from the visualization b
 ### Limitations
 
 - This demo doesn't operate hand detection, so the model expects a roughly centered hand
-- As we are deforming a sphere, the topology of the object is 0, which explains results such as the following:
-
-![mug](readme_assets/images/mug.png)
-
+- As we are deforming a sphere, the topology of the object is 0, resulting in hand poses curving in on objects (incorrect pose)
 - the model is trained only on hands holding objects, and therefore doesn't perform well on hands in the absence of objects for poses that do not resemble common grasp poses.
 - the model is trained on grasping hands only, and therefore struggles with hand poses that are associated with object-handling
   - In addition to the models, we also provide a hand-only model trained on various hand datasets, including our ObMan dataset, that captures a wider variety of hand poses
