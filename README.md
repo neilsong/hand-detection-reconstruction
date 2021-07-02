@@ -34,11 +34,9 @@ Dandan Shan, Jiaqi Geng*, Michelle Shu*, David F. Fouhey, CVPR 2020, Oral
 - install detection dependencies: `conda install pytorch torchvision cudatoolkit=10.1 -c pytorch`
 - build detection libraries: `cd lib && python setup.py build develop`
 
-
 ## Install the MANO PyTorch layer
 
 - Follow the instructions from [here](https://github.com/hassony2/manopth)
-
 
 ### Download the MANO model files
 
@@ -46,7 +44,6 @@ Dandan Shan, Jiaqi Geng*, Michelle Shu*, David F. Fouhey, CVPR 2020, Oral
 - Create an account by clicking *Sign Up* and provide your information
 - Download Models and Code (the downloaded file should have the format mano_v*_*.zip). Note that all code and data from this download falls under the [MANO license](http://mano.is.tue.mpg.de/license).
 - unzip and copy the content of the *models* folder into the misc/mano folder
-
 
 - Your structure should look like this:
 
@@ -63,9 +60,6 @@ hand-detection-reconstruction/
 
 ```
 
-
-
-
 # Demo
 
 You can test it on a recorded video or live using a webcam by launching :
@@ -79,10 +73,7 @@ Note that the video demo has some lag time, which comes from the visualization b
 ### Limitations
 
 - This demo doesn't operate hand detection, so the model expects a roughly centered hand
-- As we are deforming a sphere, the topology of the object is 0, which explains results such as the following:
-
-![mug](readme_assets/images/mug.png)
-
+- As we are deforming a sphere, the topology of the object is 0, resulting in hand poses curving in on objects (incorrect pose)
 - the model is trained only on hands holding objects, and therefore doesn't perform well on hands in the absence of objects for poses that do not resemble common grasp poses.
 - the model is trained on grasping hands only, and therefore struggles with hand poses that are associated with object-handling
   - In addition to the models, we also provide a hand-only model trained on various hand datasets, including our ObMan dataset, that captures a wider variety of hand poses
