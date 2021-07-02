@@ -106,7 +106,6 @@ if __name__ == "__main__":
             raise RuntimeError("OpenCV could not load frame")
         hand_dets = detection(frame, fasterRCNN)
         print(hand_dets)
-        quit()
         frame = preprocess_frame(frame)
         input_image = prepare_input(frame)
         blend_img_hand = attention_hand.blend_map(frame)

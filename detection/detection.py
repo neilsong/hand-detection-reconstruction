@@ -7,7 +7,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import _init_paths
 import os
 import numpy as np
 import time
@@ -95,7 +94,7 @@ def detection_init(checksession, checkepoch, checkpoint):
   momentum = cfg.TRAIN.MOMENTUM
   weight_decay = cfg.TRAIN.WEIGHT_DECAY
 
-  cfg_from_file("cfgs/res101.yml")
+  cfg_from_file("detection/cfgs/res101.yml")
 
   cfg.USE_GPU_NMS = True
   np.random.seed(cfg.RNG_SEED)
@@ -255,9 +254,9 @@ def detection(frame, fasterRCNN):
 
     misc_toc = time.time()
     nms_time = misc_toc - misc_tic
-
-    im2showRGB = cv2.cvtColor(im2show, cv2.COLOR_BGR2RGB)
-    cv2.imshow("frame", im2showRGB)
+    im2show = im2show.convert('RGB')
+    open_cv_image = np.array(im2show)
+    cv2.imshow("frame", cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2RGB))
     total_toc = time.time()
     total_time = total_toc - total_tic
     frame_rate = 1 / total_time
