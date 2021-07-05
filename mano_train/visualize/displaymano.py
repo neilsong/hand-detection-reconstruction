@@ -484,10 +484,10 @@ def cam_equal_aspect_3d(ax, verts, flip_x=False):
     r = maxsize / 2
     if flip_x:
         ax.set_xlim(centers[0] + r, centers[0] - r)
+        ax.set_ylim(centers[1] + r, centers[1] - r)
     else:
         ax.set_xlim(centers[0] - r, centers[0] + r)
-    # Invert y and z axis
-    ax.set_ylim(centers[1] + r, centers[1] - r)
+        ax.set_ylim(centers[1] - r, centers[1] + r)
     ax.set_zlim(centers[2] + r, centers[2] - r)
 
 

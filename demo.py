@@ -5,6 +5,7 @@ import pickle
 import cv2
 from matplotlib import pyplot as plt
 import numpy as np
+from copy import deepcopy
 from PIL import Image
 
 from handobjectdatasets.queries import TransQueries, BaseQueries
@@ -19,10 +20,10 @@ from mano_train.demo.preprocess import prepare_input, preprocess_frame
 from detection.detection import detection_init, detection
 
 
-def forward_pass_3d(model, input_image, pred_obj=True, hand_side="left"):
+def forward_pass_3d(model, input_image, pred_obj=True, left=True):
     sample = {}
     sample[TransQueries.images] = input_image
-    sample[BaseQueries.sides] = [hand_side]
+    sample[BaseQueries.sides] = ["left" if left else "right"]
     sample[TransQueries.joints3d] = input_image.new_ones((1, 21, 3)).float()
     sample["root"] = "wrist"
     if pred_obj:
@@ -49,7 +50,10 @@ if __name__ == "__main__":
         "--no_beta", action="store_true", help="Force shape to average"
     )
     parser.add_argument(
-        "--flip_left_right", action="store_true", help="Force shape to average"
+        "--left", action="store_true", help="Force shape to average"
+    )
+    parser.add_argument(
+        "--right", action="store_true", help="Force shape to average"
     )
     parser.add_argument('--checksession', dest='checksession',
                       help='checksession to load model',
@@ -107,7 +111,6 @@ if __name__ == "__main__":
         hand_dets = detection(frame, fasterRCNN)
         print(hand_dets)
         frame = preprocess_frame(frame)
-        input_image = prepare_input(frame)
         blend_img_hand = attention_hand.blend_map(frame)
         if has_atlas_encoder:
             blend_img_atlas = attention_atlas.blend_map(frame)
@@ -115,35 +118,42 @@ if __name__ == "__main__":
         img = Image.fromarray(frame.copy())
         hand_crop = cv2.resize(np.array(img), (256, 256))
         hand_image = prepare_input(
-            hand_crop, flip_left_right=args.flip_left_right
+            hand_crop, flip_left_right=args.right
         )
-        output = forward_pass_3d(model, hand_image, hand_side=args.hand_side)
-
+        output = forward_pass_3d(model, hand_image, left=args.left)
+        if args.left:
+            inpimage = deepcopy(hand_crop)
+        else:
+            inpimage = deepcopy(np.flip(hand_crop, axis=1))
+        # noflip_inpimage = cv2.flip(noflip_inpimage, 0)
+        # noflip_inpimage = cv2.rotate(noflip_inpimage, cv2.ROTATE_180)
+        # noflip_inpimage = cv2.flip(noflip_inpimage, 1)
         if "joints2d" in output:
             joints2d = output["joints2d"]
-            frame = visualize_joints_2d_cv2(
-                frame, joints2d.cpu().detach().numpy()[0]
+            inpimage = visualize_joints_2d_cv2(
+                inpimage, joints2d.cpu().detach().numpy()[0]
             )
 
         cv2.imshow("attention hand", blend_img_hand)
 
         verts = output["verts"].cpu().detach().numpy()[0]
         ax = fig.add_subplot(1, 1, 1, projection="3d")
-        displaymano.add_mesh(ax, verts, faces, flip_x=True)
+        displaymano.add_mesh(ax, verts, faces, flip_x=args.left)
         if "objpoints3d" in output:
             objverts = output["objpoints3d"].cpu().detach().numpy()[0]
             displaymano.add_mesh(
-                ax, objverts, output["objfaces"], flip_x=True, c="r"
+                ax, objverts, output["objfaces"], flip_x=args.left, c="r"
             )
+        
+        if args.left: cv2.imshow("pose", cv2.flip(inpimage, 1))
+        
         fig.canvas.draw()
         w, h = fig.canvas.get_width_height()
         buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
         buf.shape = (w, h, 4)
         # Captured right hand of user is seen as right (mirror effect)
-        if args.hand_side == "left":
-            cv2.imshow("pose estimation", cv2.flip(frame, 1))
-        else:
-            cv2.imshow("pose estimation", frame)
+        
+        # cv2.imshow("pose estimation", cv2.flip(frame, 1))
         cv2.imshow("mesh", buf)
         cv2.waitKey(1)
 
