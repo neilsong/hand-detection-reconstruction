@@ -1,22 +1,21 @@
 import cv2 as cv
-def crop(orig_img, xmin, ymin, xmax, ymax, scale):
-    final SMALLEST_SIZE = 256
+
+def crop(orig_img, xmin, xmax, ymin, ymax, scale):
+    SMALLEST_SIZE = 256
     
     width = abs(xmin-xmax)
     height = abs(ymin-ymax)
     side = max(width,height)*scale
     side = max(side, SMALLEST_SIZE)
 
-    xcenter = (xmax-xmin+1)/2
-    ycenter = (ymax-ymin+1)/2
-
-    left_edge = xcenter - side/2
-    right_edge = xcenter + (side+1)/2
-    upper_edge = ycenter - side/2
-    bottom_edge = ycenter + (side+1)/2
+    xcenter = int((xmax-xmin+1)/2)
+    ycenter = int((ymax-ymin+1)/2)
+    
+    left_edge = max(0, xcenter - int(side/2))
+    right_edge = min(len(orig_img), xcenter + int((side+1)/2))
+    upper_edge = max(0, ycenter - int(side/2))
+    bottom_edge = min(len(orig_img[0]), ycenter + int((side+1)/2))
 
     img = orig_img[left_edge:right_edge,upper_edge:bottom_edge].copy()
 
-    return cv.resize(img,(SMALLEST_SIZE,SMALLEST_SIZE),interpolation = cv2.INTER_AREA)
-
-orig = cv.imread()
+    return cv.resize(img,(SMALLEST_SIZE,SMALLEST_SIZE),interpolation = cv.INTER_AREA)
