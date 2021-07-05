@@ -140,7 +140,10 @@ if __name__ == "__main__":
         buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
         buf.shape = (w, h, 4)
         # Captured right hand of user is seen as right (mirror effect)
-        cv2.imshow("pose estimation", cv2.flip(frame, 1))
+        if args.hand_side == "left":
+            cv2.imshow("pose estimation", cv2.flip(frame, 1))
+        else:
+            cv2.imshow("pose estimation", frame)
         cv2.imshow("mesh", buf)
         cv2.waitKey(1)
 
