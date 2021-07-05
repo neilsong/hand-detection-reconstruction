@@ -1,7 +1,12 @@
 import cv2 as cv
 
-def crop(orig_img, xmin, xmax, ymin, ymax, scale):
+def crop(orig_img, hand_dets, scale):
     SMALLEST_SIZE = 256
+    
+    xmin = hand_dets[0]
+    ymin = hand_dets[1]
+    xmax = hand_dets[2]
+    ymax = hand_dets[3]
     
     width = abs(xmin-xmax)
     height = abs(ymin-ymax)
