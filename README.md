@@ -24,13 +24,15 @@ Dandan Shan, Jiaqi Geng*, Michelle Shu*, David F. Fouhey, CVPR 2020, Oral
 # Download and prepare models
 ## Download model files
 
-- Download model files from [here](http://www.di.ens.fr/willow/research/obman/release_models.zip) `wget http://www.di.ens.fr/willow/research/obman/release_models.zip`
+- Download model files from [here](http://www.di.ens.fr/willow/research/obman/release_models.zip) `wget http://www.di.ens.fr/willow/research/obman/release_models.zip` (Note: directly downloading the files is probably faster)
 - unzip `unzip release_models.zip`
 
 ## Install python dependencies
 
 - create conda environment with dependencies: `conda env create -f environment.yml`
-- activate environment: `conda activate obman_train`
+- activate environment: `conda activate hand-det-recon`
+- install detection dependencies: `conda install pytorch torchvision cudatoolkit=10.1 -c pytorch`
+- build detection libraries: `cd lib && python setup.py build develop`
 
 ## Install the MANO PyTorch layer
 

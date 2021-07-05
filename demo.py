@@ -16,6 +16,8 @@ from mano_train.visualize import displaymano
 from mano_train.demo.attention import AttentionHook
 from mano_train.demo.preprocess import prepare_input, preprocess_frame
 
+from detection.detection import detection_init, detection
+
 
 def forward_pass_3d(model, input_image, pred_obj=True, hand_side="left"):
     sample = {}
@@ -49,6 +51,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--flip_left_right", action="store_true", help="Force shape to average"
     )
+    parser.add_argument('--checksession', dest='checksession',
+                      help='checksession to load model',
+                      default=1, type=int)
+    parser.add_argument('--checkepoch', dest='checkepoch',
+                      help='checkepoch to load network',
+                      default=10, type=int)
+    parser.add_argument('--checkpoint', dest='checkpoint',
+                      help='checkpoint to load network',
+                      default=90193, type=int, required=True)
     args = parser.parse_args()
     argutils.print_args(args)
 
@@ -58,6 +69,7 @@ if __name__ == "__main__":
 
     # Initialize network
     model = reload_model(args.resume, opts, no_beta=args.no_beta)
+    fasterRCNN = detection_init(args.checksession, args.checkepoch, args.checkpoint)
 
     model.eval()
 
@@ -92,6 +104,8 @@ if __name__ == "__main__":
         ret, frame = cap.read()
         if not ret:
             raise RuntimeError("OpenCV could not load frame")
+        hand_dets = detection(frame, fasterRCNN)
+        print(hand_dets)
         frame = preprocess_frame(frame)
         input_image = prepare_input(frame)
         blend_img_hand = attention_hand.blend_map(frame)
@@ -126,7 +140,10 @@ if __name__ == "__main__":
         buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
         buf.shape = (w, h, 4)
         # Captured right hand of user is seen as right (mirror effect)
-        cv2.imshow("pose estimation", cv2.flip(frame, 1))
+        if args.hand_side == "left":
+            cv2.imshow("pose estimation", cv2.flip(frame, 1))
+        else:
+            cv2.imshow("pose estimation", frame)
         cv2.imshow("mesh", buf)
         cv2.waitKey(1)
 
