@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from copy import deepcopy
 from PIL import Image
+import torch
 
 from handobjectdatasets.queries import TransQueries, BaseQueries
 from handobjectdatasets.viz2d import visualize_joints_2d_cv2
@@ -30,6 +31,7 @@ def forward_pass_3d(model, input_image, pred_obj=True, left=True):
         sample[TransQueries.objpoints3d] = input_image.new_ones(
             (1, 600, 3)
         ).float()
+    sample.to(torch.device('cuda:0'))
     _, results, _ = model.forward(sample, no_loss=True)
 
     return results
@@ -76,6 +78,7 @@ if __name__ == "__main__":
     fasterRCNN = detection_init(args.checksession, args.checkepoch, args.checkpoint)
 
     model.eval()
+    model.to(torch.device('cuda:0'))
 
     # Initialize stream from camera
     if args.video_path is None:
