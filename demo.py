@@ -1,4 +1,6 @@
 import argparse
+from mano_train.demo.attention import AttentionHook
+from handobjectdatasets.queries import BaseQueries, TransQueries
 
 import cv2
 
@@ -10,10 +12,31 @@ from multiprocessing import Process
 from crop import crop
 from mano_train.demo.preprocess import preprocess_frame
 import numpy as np
-import multiprocessing
-from workers import worker
+import numpy as np
+import ray
+from mano_train.netscripts.reload import reload_ray_model
+import os, pickle, torch
+
+@ray.remote(num_gpus=3)
+def forward_pass_3d(model, input_image, pred_obj=True, left=True):
+    device = torch.device("cuda")
+    sample = {}
+    sample[TransQueries.images] = input_image.to(device)
+    sample[BaseQueries.sides] = ["left" if left else "right"]
+    sample[TransQueries.joints3d] = input_image.new_ones((1, 21, 3)).float().to(device)
+    sample["root"] = "wrist"
+    if pred_obj:
+        sample[TransQueries.objpoints3d] = input_image.new_ones(
+            (1, 600, 3)
+        ).float().to(device)
+    # print(sample)
+    _, results, _ = model.forward.remote(sample, no_loss=True)
+
+    return results
+
 
 if __name__ == "__main__":
+    ray.init()
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--resume",
@@ -34,9 +57,20 @@ if __name__ == "__main__":
                       default=90193, type=int, required=True)
     parser.add_argument('--workers', dest='workers',
                       help='Number of workers to initialize',
-                      default=multiprocessing.cpu_count()-1 or 1, type=int,)                  
+                      default=3, type=int,)                  
     args = parser.parse_args()
     argutils.print_args(args)
+
+
+    # Load model options
+    checkpoint = os.path.dirname(args.resume)
+    with open(os.path.join(checkpoint, "opt.pkl"), "rb") as opt_f:
+        opts = pickle.load(opt_f)
+    
+    # Load faces of hand
+    with open("misc/mano/MANO_RIGHT.pkl", "rb") as p_f:
+        mano_right_data = pickle.load(p_f, encoding="latin1")
+        faces = mano_right_data["f"]
 
     # Initialize network
     fasterRCNN = detection_init(args.checksession, args.checkepoch, args.checkpoint)
@@ -51,11 +85,11 @@ if __name__ == "__main__":
     if cap is None:
         raise RuntimeError("OpenCV could not use webcam")
 
-    print(" ------------------- Start Multiprocessing Workers ------------------- \n")
-    multiprocessing.set_start_method('spawn')
-    pool = multiprocessing.Pool()
-    queue = multiprocessing.Manager().Queue()
-    pool.map(worker, [(queue, i%3, i+1, args.resume) for i in range(args.workers)] )
+    print(" ------------------- Start Ray Multiprocessing Workers ------------------- \n")
+
+    HandNets = [reload_ray_model(args.resume, opts) for i in range(args.workers)]
+    
+    attention_hands = [AttentionHook(model.get_base_net.remote()) for model in HandNets]
 
     while True:
         ret, frame = cap.read()
@@ -67,8 +101,11 @@ if __name__ == "__main__":
             hand_dets = [(hand_idx + 1, hand_dets[i, :]) for hand_idx, i in enumerate(range(np.minimum(10, hand_dets.shape[0]))) ]
             hands = [(hand_idx, crop(frame, det, 1.2), det[-1]) for hand_idx, det in hand_dets]
             # cv2.imshow("crop", hands[0])
-            hands = [(hand_idx, preprocess_frame(frame), not side) for hand_idx, frame, side in hands]
-            for hand in hands: queue.put(hand)
+            hands = [(hand_idx, preprocess_frame(frame), not bool(side)) for hand_idx, frame, side in hands]
+            
+            
+
+
         cv2.waitKey(1)
 
 

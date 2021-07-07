@@ -83,6 +83,27 @@ def load_checkpoint(model, resume_path, optimizer=None, strict=True, load_atlas=
         best = checkpoint["best_score"]
     return checkpoint["epoch"], best
 
+def load_state_dict(resume_path):
+    if os.path.isfile(resume_path):
+        print("=> loading checkpoint '{}'".format(resume_path))
+        checkpoint = torch.load(resume_path)
+        if "module" in list(checkpoint["state_dict"].keys())[0]:
+            state_dict = checkpoint["state_dict"]
+        else:
+            state_dict = {
+                "module.{}".format(key): item
+                for key, item in checkpoint["state_dict"].items()
+            }
+            print(
+                "=> loaded checkpoint '{}' (epoch {})".format(
+                    resume_path, checkpoint["epoch"]
+                )
+            )
+        return state_dict
+    else:
+        raise ValueError("=> no checkpoint found at '{}'".format(resume_path))
+
+    
 
 def save_checkpoint(
     state,
