@@ -38,6 +38,7 @@ def reload_model(
     mano_root="misc/mano",
     ico_divisions=3,
     no_beta=False,
+    gpu=[1]
 ):
     if "absolute_lambda" not in checkpoint_opts:
         checkpoint_opts["absolute_lambda"] = 0
@@ -98,16 +99,9 @@ def reload_model(
         mano_lambda_joints3d=checkpoint_opts["mano_lambda_joints3d"],
         mano_lambda_joints2d=checkpoint_opts["mano_lambda_joints2d"],
     )
-    model = torch.nn.DataParallel(model)
+    model = torch.nn.DataParallel(model, device_ids=gpu)
     model.eval()
-    try:
-        modelio.load_checkpoint(model, resume_path=model_path, strict=True)
-    except RuntimeError:
-        traceback.print_exc()
-        warnings.warn(
-            "Couldn' load model in strict mode, trying without strict"
-        )
-        modelio.load_checkpoint(model, resume_path=model_path, strict=False)
+    modelio.load_checkpoint(model, resume_path=model_path, strict=False)
     return model
 
 

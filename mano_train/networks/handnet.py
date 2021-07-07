@@ -204,7 +204,7 @@ class HandNet(nn.Module):
         total_loss = None
         results = {}
         losses = {}
-        image = sample[TransQueries.images].cuda()
+        image = sample[TransQueries.images]
         features, _ = self.base_net(image)
         if self.atlas_separate_encoder:
             atlas_infeatures, _ = self.atlas_base_net(image)

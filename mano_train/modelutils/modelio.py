@@ -55,8 +55,8 @@ def load_checkpoint(model, resume_path, optimizer=None, strict=True, load_atlas=
             state_dict = atlas_state_dict
 
         missing_states = set(model.state_dict().keys()) - set(state_dict.keys())
-        if len(missing_states) > 0:
-            warnings.warn("Missing keys ! : {}".format(missing_states))
+        # if len(missing_states) > 0:
+        #     warnings.warn("Missing keys ! : {}".format(missing_states))
         model.load_state_dict(state_dict, strict=strict)
         if optimizer is not None:
             try:
