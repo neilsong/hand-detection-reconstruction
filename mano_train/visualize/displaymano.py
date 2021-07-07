@@ -8,7 +8,7 @@ from handobjectdatasets.queries import TransQueries, BaseQueries
 from handobjectdatasets.viz3d import visualize_joints_3d
 from handobjectdatasets.viz2d import visualize_joints_2d
 
-
+#used here
 def create_segments(contact_infos, mesh_verts):
     missed_mask, penetr_mask, close_verts = contact_infos
     penetrating_verts = mesh_verts[penetr_mask == 1]
@@ -17,7 +17,7 @@ def create_segments(contact_infos, mesh_verts):
     missed_close_verts = close_verts[missed_mask == 1]
     return penetrating_verts, penetrating_close_verts, missed_verts, missed_close_verts
 
-
+#used here
 def visualize_contacts3d(ax, contact_infos, mesh_verts, alpha=0.1):
     penetrating_verts, penetrating_close_verts, missed_verts, missed_close_verts = create_segments(
         contact_infos, mesh_verts
@@ -39,7 +39,7 @@ def visualize_contacts3d(ax, contact_infos, mesh_verts, alpha=0.1):
             alpha=alpha,
         )
 
-
+#used here
 def visualize_contacts2d(
     ax, contact_infos, mesh_verts, proj="z", contact_alpha=0.5, penetr_alpha=0.5
 ):
@@ -62,7 +62,7 @@ def visualize_contacts2d(
             alpha=contact_alpha,
         )
 
-
+#used in epochpass3d.py
 def visualize_batch(
     save_img_path,
     sample,
@@ -338,7 +338,7 @@ def visualize_batch(
             ax.imshow(depth_target[row_idx], alpha=0.5)
     plt.savefig(save_img_path, dpi=100)
 
-
+#used here
 def get_row(batch_sample, idx):
     if batch_sample is not None:
         row_sample = batch_sample[idx]
@@ -346,7 +346,7 @@ def get_row(batch_sample, idx):
         row_sample = None
     return row_sample
 
-
+#used here
 def add_hand_obj_meshes(
     ax,
     sample,
@@ -395,7 +395,7 @@ def add_hand_obj_meshes(
     ax.set_ylabel("y")
     ax.set_zlabel("z")
 
-
+#used here
 def get_proj_axis(proj="z"):
     if proj == "z":
         proj_1 = 0
