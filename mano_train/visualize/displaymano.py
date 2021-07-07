@@ -8,7 +8,7 @@ from handobjectdatasets.queries import TransQueries, BaseQueries
 from handobjectdatasets.viz3d import visualize_joints_3d
 from handobjectdatasets.viz2d import visualize_joints_2d
 
-
+#used here
 def create_segments(contact_infos, mesh_verts):
     missed_mask, penetr_mask, close_verts = contact_infos
     penetrating_verts = mesh_verts[penetr_mask == 1]
@@ -17,7 +17,7 @@ def create_segments(contact_infos, mesh_verts):
     missed_close_verts = close_verts[missed_mask == 1]
     return penetrating_verts, penetrating_close_verts, missed_verts, missed_close_verts
 
-
+#used here
 def visualize_contacts3d(ax, contact_infos, mesh_verts, alpha=0.1):
     penetrating_verts, penetrating_close_verts, missed_verts, missed_close_verts = create_segments(
         contact_infos, mesh_verts
@@ -39,7 +39,7 @@ def visualize_contacts3d(ax, contact_infos, mesh_verts, alpha=0.1):
             alpha=alpha,
         )
 
-
+#used here
 def visualize_contacts2d(
     ax, contact_infos, mesh_verts, proj="z", contact_alpha=0.5, penetr_alpha=0.5
 ):
@@ -62,7 +62,7 @@ def visualize_contacts2d(
             alpha=contact_alpha,
         )
 
-
+#used in epochpass3d.py
 def visualize_batch(
     save_img_path,
     sample,
@@ -338,7 +338,7 @@ def visualize_batch(
             ax.imshow(depth_target[row_idx], alpha=0.5)
     plt.savefig(save_img_path, dpi=100)
 
-
+#used here
 def get_row(batch_sample, idx):
     if batch_sample is not None:
         row_sample = batch_sample[idx]
@@ -346,7 +346,7 @@ def get_row(batch_sample, idx):
         row_sample = None
     return row_sample
 
-
+#used here
 def add_hand_obj_meshes(
     ax,
     sample,
@@ -395,7 +395,7 @@ def add_hand_obj_meshes(
     ax.set_ylabel("y")
     ax.set_zlabel("z")
 
-
+#used here
 def get_proj_axis(proj="z"):
     if proj == "z":
         proj_1 = 0
@@ -408,7 +408,7 @@ def get_proj_axis(proj="z"):
         proj_2 = 2
     return proj_1, proj_2
 
-
+#used here
 def add_scatter_proj(ax, gt_objpoints3d, pred_objpoints3d, proj="z"):
     proj_1, proj_2 = get_proj_axis(proj=proj)
     if pred_objpoints3d is not None:
@@ -425,7 +425,7 @@ def add_scatter_proj(ax, gt_objpoints3d, pred_objpoints3d, proj="z"):
         )
     ax.set_aspect("equal")
 
-
+#used here
 def add_joints_proj(ax, gt_keypoints, pred_keypoints, proj="z", joint_idxs=False):
     proj_1, proj_2 = get_proj_axis(proj=proj)
     if gt_keypoints is not None:
@@ -443,7 +443,7 @@ def add_joints_proj(ax, gt_keypoints, pred_keypoints, proj="z", joint_idxs=False
         )
     ax.set_aspect("equal")
 
-
+#*******used in workers.py and here*******
 def add_mesh(ax, verts, faces, flip_x=False, c="b", alpha=0.1):
     ax.view_init(elev=90, azim=-90)
     mesh = Poly3DCollection(verts[faces], alpha=alpha)
@@ -471,7 +471,7 @@ def add_mesh(ax, verts, faces, flip_x=False, c="b", alpha=0.1):
     cam_equal_aspect_3d(ax, verts, flip_x=flip_x)
     plt.tight_layout()
 
-
+#used in contactutils.py, handataset.py, and here
 def cam_equal_aspect_3d(ax, verts, flip_x=False):
     """
     Centers view on cuboid containing hand and flips y and z axis
@@ -490,7 +490,7 @@ def cam_equal_aspect_3d(ax, verts, flip_x=False):
         ax.set_ylim(centers[1] - r, centers[1] + r)
     ax.set_zlim(centers[2] + r, centers[2] - r)
 
-
+#used in epochpass3d.py
 def save_pck_img(thresholds, pck_values, auc_all, save_pck_file, overlay=None):
     """
     Args:
