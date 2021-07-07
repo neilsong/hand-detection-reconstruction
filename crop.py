@@ -26,7 +26,7 @@ def crop(orig_img, handbbx, scale, diagnostics = False):
     bottom_edge = min(len(orig_img)-1, int(ycenter + side/2 + 1))
 
     img = orig_img[upper_edge:bottom_edge,left_edge:right_edge].copy()
-    img = cv.resize(img,(SMALLEST_SIZE,SMALLEST_SIZE),interpolation = cv.INTER_AREA)
+    img = cv.resize(img,(SMALLEST_SIZE,SMALLEST_SIZE),interpolation = cv.INTER_LINEAR)
     
     if diagnostics:
         print("original image size :" + str(len(orig_img))+"x"+str(len(orig_img[0])))
