@@ -60,7 +60,7 @@ hand-detection-reconstruction/
 
 ```
 
-### Install VisPy
+# Install VisPy
 `conda create -c conda-forge -n vispy_env python=3.6 vispy pyqt=5* numpy nose pytest`
 `activate vispy_env`
 
