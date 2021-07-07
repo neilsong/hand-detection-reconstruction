@@ -51,8 +51,8 @@ def draw_hand_mask(image, draw, hand_idx, hand_bbox, hand_score, side, state, wi
     # text
     
     draw = ImageDraw.Draw(image)
-    draw.rectangle([hand_bbox[0], max(0, hand_bbox[1]-30), hand_bbox[0]+62, max(0, hand_bbox[1]-30)+30], fill=(255, 255, 255), outline=hand_rgb[side_idx], width=4)
-    draw.text((hand_bbox[0]+6, max(0, hand_bbox[1]-30)-2), f'{side_map3[int(float(side))]}-{state_map2[int(float(state))]}', font=font, fill=(0,0,0)) # 
+    draw.rectangle([hand_bbox[0], max(0, hand_bbox[1]-30), hand_bbox[0]+100, max(0, hand_bbox[1]-30)+30], fill=(255, 255, 255), outline=hand_rgb[side_idx], width=4)
+    draw.text((hand_bbox[0]+6, max(0, hand_bbox[1]-30)-2), f'{side_map3[int(float(side))]}-{state_map2[int(float(state))]} #{str(hand_idx+1)}', font=font, fill=(0,0,0)) # 
 
     return image
     
