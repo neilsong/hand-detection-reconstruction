@@ -11,22 +11,10 @@ import os, cv2
 from matplotlib import pyplot as plt
 import torch
 from handobjectdatasets.queries import TransQueries, BaseQueries
+import ray
 
-def forward_pass_3d(model, input_image, device, pred_obj=True, left=True):
-    sample = {}
-    sample[TransQueries.images] = input_image.to(device)
-    sample[BaseQueries.sides] = ["left" if left else "right"]
-    sample[TransQueries.joints3d] = input_image.new_ones((1, 21, 3)).float().to(device)
-    sample["root"] = "wrist"
-    if pred_obj:
-        sample[TransQueries.objpoints3d] = input_image.new_ones(
-            (1, 600, 3)
-        ).float().to(device)
-    # print(sample)
-    _, results, _ = model.forward(sample, no_loss=True)
 
-    return results
-
+@ray.remote(numcpus=8, numgpus=3)
 def worker(input):
     fig = plt.figure(figsize=(4, 4))
     queue, gpu, number, resume = input
@@ -46,33 +34,27 @@ def worker(input):
         faces = mano_right_data["f"]
 
     # Reload model from checkpoint
-    model = reload_model(resume, opts)
+    model = reload_model(resume, opts, gpu=[gpu])
 
     # Send model to worker's GPU
     device = torch.device("cuda:" + str(gpu))
     model.to(device)
 
     # Add attention map
-    attention_hand = AttentionHook(model.module.base_net)
-    if hasattr(model.module, "atlas_base_net"):
-        attention_atlas = AttentionHook(model.module.atlas_base_net)
-        has_atlas_encoder = True
-    else:
-        has_atlas_encoder = False
+    
 
     # Finish Worker Init
     print(f"Worker #{number} initialized")
+    queue.put(number)
 
     while True:
         fig.clf()
         hand_idx, frame, left = queue.get()
 
-        # (Atlas) Attention
-        blend_img_hand = attention_hand.blend_map(preprocess_frame(frame))
-        if has_atlas_encoder:
-            blend_img_atlas = attention_atlas.blend_map(frame)
-            cv2.imshow("Hand #{hand_idx} Atlas Attention", blend_img_atlas)
-        cv2.imshow(f"Hand #{hand_idx} Attention", blend_img_hand)
+        print(left)
+
+        
+        # cv2.imshow(f"Hand #{hand_idx} Attention", blend_img_hand)
 
 
         img = Image.fromarray(frame.copy())
@@ -92,11 +74,12 @@ def worker(input):
 
         if "joints2d" in output:
             joints2d = output["joints2d"]
-            inpimage = visualize_joints_2d_cv2(
+            pose = visualize_joints_2d_cv2(
                 inpimage, joints2d.cpu().detach().numpy()[0]
             )
 
-        if left: cv2.imshow(f"Hand #{hand_idx} Pose", cv2.flip(inpimage, 1))
+        if left: 
+            pose = cv2.flip(inpimage, 1)
         
         # Mesh Reconstruction
         verts = output["verts"].cpu().detach().numpy()[0]
@@ -113,6 +96,7 @@ def worker(input):
         w, h = fig.canvas.get_width_height()
         buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
         buf.shape = (w, h, 4)
-        cv2.imshow(f"Hand #{hand_idx} Mesh", buf)
+        cv2.imshow(f"Hand #{hand_idx} Pose", pose)
+        #cv2.imshow(f"Hand #{hand_idx} Mesh", buf)
 
         cv2.waitKey(1)

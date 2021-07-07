@@ -15,7 +15,6 @@ from mano_train.networks.branches.contactloss import (
 from mano_train.networks.branches.absolutebranch import AbsoluteBranch
 from handobjectdatasets.queries import TransQueries, BaseQueries
 
-
 class HandNet(nn.Module):
     def __init__(
         self,
@@ -84,7 +83,7 @@ class HandNet(nn.Module):
             adapt_atlas_decoder: add layer between encoder and decoder, usefull
                 when finetuning from separately pretrained encoder and decoder
         """
-        super(HandNet, self).__init__()
+        super().__init__()
         if int(resnet_version) == 18:
             img_feature_size = 512
             base_net = resnet.resnet18(pretrained=True)
@@ -184,6 +183,11 @@ class HandNet(nn.Module):
             laplacian_faces=self.atlas_branch.test_faces,
             laplacian_verts=self.atlas_branch.test_verts,
         )
+        self.cuda()
+        print(torch.cuda.device_count())
+    
+    def get_base_net(self):
+        return self.base_net
 
     def decay_regul(self, gamma):
         if self.atlas_loss.edge_regul_lambda is not None:
@@ -198,6 +202,7 @@ class HandNet(nn.Module):
     def forward(
         self, sample, no_loss=False, return_features=False, force_objects=False
     ):
+        self.eval()
         if force_objects:
             if TransQueries.objpoints3d not in sample:
                 sample[TransQueries.objpoints3d] = None

@@ -11,6 +11,7 @@ from mano_train.netscripts.get_datasets import get_dataset
 from mano_train.modelutils import modelio
 
 from handobjectdatasets.queries import BaseQueries, TransQueries
+import ray
 
 
 def save_obj(filename, verticies, faces):
@@ -38,7 +39,6 @@ def reload_model(
     mano_root="misc/mano",
     ico_divisions=3,
     no_beta=False,
-    gpu=[1]
 ):
     if "absolute_lambda" not in checkpoint_opts:
         checkpoint_opts["absolute_lambda"] = 0
@@ -100,9 +100,81 @@ def reload_model(
         mano_lambda_joints2d=checkpoint_opts["mano_lambda_joints2d"],
     )
     model = torch.nn.DataParallel(model, device_ids=gpu)
-    model.eval()
     modelio.load_checkpoint(model, resume_path=model_path, strict=False)
     return model
+
+def reload_ray_model(
+    model_path,
+    checkpoint_opts,
+    mano_root="misc/mano",
+    ico_divisions=3,
+    no_beta=False,
+):
+    if "absolute_lambda" not in checkpoint_opts:
+        checkpoint_opts["absolute_lambda"] = 0
+    if "atlas_predict_trans" not in checkpoint_opts:
+        checkpoint_opts["atlas_predict_trans"] = False
+    if "atlas_lambda_laplacian" not in checkpoint_opts:
+        checkpoint_opts["atlas_lambda_laplacian"] = False
+    if "atlas_residual" not in checkpoint_opts:
+        checkpoint_opts["atlas_residual"] = False
+    if "mano_lambda_joints3d" not in checkpoint_opts:
+        checkpoint_opts["mano_lambda_joints3d"] = False
+    if "mano_lambda_joints2d" not in checkpoint_opts:
+        checkpoint_opts["mano_lambda_joints2d"] = False
+    if "mano_adapt_skeleton" not in checkpoint_opts:
+        checkpoint_opts["mano_adapt_skeleton"] = False
+    if "contact_lambda" not in checkpoint_opts:
+        checkpoint_opts["contact_lambda"] = 0
+    if "collision_lambda" not in checkpoint_opts:
+        checkpoint_opts["collision_lambda"] = 0
+    if "mano_use_pca" not in checkpoint_opts:
+        checkpoint_opts["mano_use_pca"] = True
+    if "atlas_separate_encoder" not in checkpoint_opts:
+        checkpoint_opts["atlas_separate_encoder"] = False
+    if "atlas_final_lambda" not in checkpoint_opts:
+        checkpoint_opts["atlas_final_lambda"] = 0
+
+    if no_beta:
+        mano_use_shape = False
+    else:
+        mano_use_shape = checkpoint_opts["use_shape"]
+    if "atlas_predict_scale" not in checkpoint_opts:
+        checkpoint_opts["atlas_predict_scale"] = False
+
+    RayHandNet = ray.remote(num_gpus=0.5)(HandNet)
+    HandNetActor = RayHandNet.remote(
+        resnet_version=18,
+        absolute_lambda=checkpoint_opts["absolute_lambda"],
+        atlas_mesh=True,
+        atlas_points_nb=642,
+        atlas_lambda_regul_edges=checkpoint_opts["atlas_lambda_regul_edges"],
+        atlas_lambda_laplacian=checkpoint_opts["atlas_lambda_laplacian"],
+        atlas_predict_trans=checkpoint_opts["atlas_predict_trans"],
+        atlas_predict_scale=checkpoint_opts["atlas_predict_scale"],
+        atlas_residual=checkpoint_opts["atlas_residual"],
+        atlas_lambda=checkpoint_opts["atlas_lambda"],
+        atlas_final_lambda=checkpoint_opts["atlas_final_lambda"],
+        atlas_ico_divisions=ico_divisions,
+        atlas_separate_encoder=checkpoint_opts["atlas_separate_encoder"],
+        contact_lambda=checkpoint_opts["contact_lambda"],
+        collision_lambda=checkpoint_opts["collision_lambda"],
+        mano_adapt_skeleton=checkpoint_opts["mano_adapt_skeleton"],
+        mano_root=mano_root,
+        mano_center_idx=checkpoint_opts["center_idx"],
+        mano_comps=30,
+        mano_neurons=checkpoint_opts["hidden_neurons"],
+        mano_use_shape=mano_use_shape,
+        mano_use_pca=checkpoint_opts["mano_use_pca"],
+        mano_lambda_verts=checkpoint_opts["mano_lambda_verts"],
+        mano_lambda_joints3d=checkpoint_opts["mano_lambda_joints3d"],
+        mano_lambda_joints2d=checkpoint_opts["mano_lambda_joints2d"],
+    )
+    weights = modelio.load_state_dict(model_path)
+    weights_id = ray.put(weights)
+    ray.get(HandNetActor.load_state_dict.remote(weights_id, strict=False))
+
+    return HandNetActor
 
 
 def get_loader(

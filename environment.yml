@@ -21,3 +21,4 @@ dependencies:
     - pyyaml 
     - tensorboardX
     - jinja2
+    - ray
