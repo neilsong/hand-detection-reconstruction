@@ -408,7 +408,7 @@ def get_proj_axis(proj="z"):
         proj_2 = 2
     return proj_1, proj_2
 
-
+#used here
 def add_scatter_proj(ax, gt_objpoints3d, pred_objpoints3d, proj="z"):
     proj_1, proj_2 = get_proj_axis(proj=proj)
     if pred_objpoints3d is not None:
@@ -425,7 +425,7 @@ def add_scatter_proj(ax, gt_objpoints3d, pred_objpoints3d, proj="z"):
         )
     ax.set_aspect("equal")
 
-
+#used here
 def add_joints_proj(ax, gt_keypoints, pred_keypoints, proj="z", joint_idxs=False):
     proj_1, proj_2 = get_proj_axis(proj=proj)
     if gt_keypoints is not None:
@@ -443,7 +443,7 @@ def add_joints_proj(ax, gt_keypoints, pred_keypoints, proj="z", joint_idxs=False
         )
     ax.set_aspect("equal")
 
-
+#*******used in workers.py and here*******
 def add_mesh(ax, verts, faces, flip_x=False, c="b", alpha=0.1):
     ax.view_init(elev=90, azim=-90)
     mesh = Poly3DCollection(verts[faces], alpha=alpha)
@@ -471,7 +471,7 @@ def add_mesh(ax, verts, faces, flip_x=False, c="b", alpha=0.1):
     cam_equal_aspect_3d(ax, verts, flip_x=flip_x)
     plt.tight_layout()
 
-
+#used in contactutils.py, handataset.py, and here
 def cam_equal_aspect_3d(ax, verts, flip_x=False):
     """
     Centers view on cuboid containing hand and flips y and z axis
@@ -490,7 +490,7 @@ def cam_equal_aspect_3d(ax, verts, flip_x=False):
         ax.set_ylim(centers[1] - r, centers[1] + r)
     ax.set_zlim(centers[2] + r, centers[2] - r)
 
-
+#used in epochpass3d.py
 def save_pck_img(thresholds, pck_values, auc_all, save_pck_file, overlay=None):
     """
     Args:
