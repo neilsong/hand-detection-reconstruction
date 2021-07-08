@@ -140,18 +140,32 @@ if __name__ == "__main__":
     
     #attention_hands = [AttentionHook(ray.get(model.get_base_net.remote())) for model in HandNets]
     figs = [plt.figure(figsize=(4, 4)) for i in range(args.workers)]
+    prev_toc = time.time()
 
     while True:
         for fig in figs:
             fig.clf()
-
+        
         ret, frame = cap.read()
-        cv2.imshow("orig", frame)
+
+        total_tic = time.time()
+
+        source_total = total_tic - prev_toc
+        source_frame_rate = 1 / source_total
+        print(f"Source Frame Rate: {source_frame_rate}")
+
         if not ret:
             raise RuntimeError("OpenCV could not load frame")
-        total_tic = time.time()
         
+
         hand_dets = detection(frame, fasterRCNN)
+
+        det_toc = time.time()
+        det_total = det_toc - total_tic
+        det_frame_rate = 1 / det_total
+
+        print(f"Detection Frame Rate: {det_frame_rate}")
+
         if hand_dets is not None:
             # Preprocess and crop hands
             hand_dets = [(hand_idx + 1, hand_dets[i, :]) for hand_idx, i in enumerate(range(np.minimum(10, hand_dets.shape[0]))) ]
@@ -169,11 +183,25 @@ if __name__ == "__main__":
                 for hand_idx, hand, side in hands_input
             ]
 
+
             results= ray.get([HandNets[i%args.workers].forward.remote(samples[i], no_loss=True) for i in range(len(samples))])
+            mesh_toc = time.time()
+            mesh_total = mesh_toc - total_tic
+            mesh_frame_rate = 1 / mesh_total
+
+            print(f"Mesh Frame Rate: {mesh_frame_rate}")
             
             for i in range(len(results)): plot(hands[i], results[i][1], figs[i])
+        
+        total_toc = time.time()
+        total_time = total_toc - total_tic
+        frame_rate = 1 / total_time
+        
+        print(f"Plot Frame Rate: {frame_rate}\n")
 
+        prev_toc = time.time()
         cv2.waitKey(1)
+        
 
 
     cap.release()

@@ -145,7 +145,7 @@ def reload_ray_model(
         checkpoint_opts["atlas_predict_scale"] = False
 
     #torch.nn.DataParallel.get_base_net = get_base_net
-    NNActor = ray.remote(num_gpus=0.5, num_cpus=4)(torch.nn.DataParallel)
+    NNActor = ray.remote(num_gpus=0.5, num_cpus=6)(torch.nn.DataParallel)
 
     model = HandNet(
         resnet_version=18,
