@@ -22,6 +22,8 @@ from handobjectdatasets.viz2d import visualize_joints_2d_cv2
 from copy import deepcopy
 from mano_train.visualize import vispy_displaymano
 
+from vispy import plot as vp
+
 @ray.remote(num_cpus=5, max_calls=1)
 def forward_pass_3d(HandNets, hands, i, pred_obj=True, left=True):
     input_image = hands[i]
@@ -42,7 +44,7 @@ def forward_pass_3d(HandNets, hands, i, pred_obj=True, left=True):
 
 @ray.remote(num_cpus=5, max_calls=1)
 def plot(hands, output, i):
-    fig = plt.figure(figsize=(4, 4))
+    fig = vp.Fig(size=(4, 4), show=False)
     left = hands[i][2]
     hand_crop = hands[i][1]
     hand_idx = hands[i][0]
@@ -64,6 +66,7 @@ def plot(hands, output, i):
     
     # Mesh Reconstruction
     verts = output["verts"].cpu().detach().numpy()[0]
+    # ax = fig.add_subplot(1, 1, 1, projection="3d")
     ax = fig.add_subplot(1, 1, 1, projection="3d")
 
     vispy_displaymano.add_mesh(ax, verts, faces, flip_x=left)
