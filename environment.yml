@@ -26,6 +26,3 @@ dependencies:
     - jinja2
     - ray
     - 'ray[default]'
-    - pytest
-    - pyqt5
-    - nose
