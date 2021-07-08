@@ -8,6 +8,7 @@ from handobjectdatasets.queries import TransQueries, BaseQueries
 from handobjectdatasets.viz3d import visualize_joints_3d
 from handobjectdatasets.viz2d import visualize_joints_2d
 
+from vispy import plot as vp
 from vispy.geometry import meshdata
 
 #*******used in workers.py and here*******
