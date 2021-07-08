@@ -11,6 +11,9 @@ dependencies:
   - pillow
   - trimesh
   - tqdm
+  - pytest
+  - pyqt5
+  - nose
   - pip
   - pip:
     - git+https://github.com/hassony2/chumpy.git
@@ -22,6 +25,3 @@ dependencies:
     - tensorboardX
     - jinja2
     - ray
-    - pytest
-    - pyqt5
-    - nose
