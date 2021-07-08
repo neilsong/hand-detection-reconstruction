@@ -22,3 +22,6 @@ dependencies:
     - tensorboardX
     - jinja2
     - 'ray[default]'
+    - pytest
+    - pyqt5
+    - nose
