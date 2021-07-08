@@ -7,10 +7,9 @@ canvas = scene.SceneCanvas(keys='interactive', bgcolor='w')
 view = canvas.central_widget.add_view()
 view.camera = scene.TurntableCamera(up='z', fov=60)
 
-z = np.random.normal(size=(250, 250), scale=200)
-z[100, 100] += 50000
-z = gaussian_filter(z, (10, 10))
-
+# z = np.random.normal(size=(250, 250), scale=200)
+# z[100, 100] += 50000
+# z = gaussian_filter(z, (10, 10))
 # p1 = scene.visuals.SurfacePlot(z=z, color=(0.3, 0.3, 1, 1))
 # p1.transform = scene.transforms.MatrixTransform()
 # p1.transform.scale([1/249., 1/249., 1/249.])
@@ -18,7 +17,6 @@ z = gaussian_filter(z, (10, 10))
 
 xax = scene.Axis(pos=[[0, 0], [1, 0]], tick_direction=(0, -1), axis_color='r', tick_color='r', text_color='r', font_size=16, parent=view.scene)
 yax = scene.Axis(pos=[[0, 0], [0, 1]], tick_direction=(-1, 0), axis_color='g', tick_color='g', text_color='g', font_size=16, parent=view.scene)
-
 zax = scene.Axis(pos=[[0, 0], [-1, 0]], tick_direction=(0, -1), axis_color='b', tick_color='b', text_color='b', font_size=16, parent=view.scene)
 zax.transform = scene.transforms.MatrixTransform()  # its acutally an inverted xaxis
 zax.transform.rotate(90, (0, 1, 0))  # rotate cw around yaxis

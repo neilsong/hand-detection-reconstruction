@@ -1,5 +1,4 @@
 import argparse
-from PIL import Image
 
 from matplotlib import pyplot as plt
 from mano_train.demo.attention import AttentionHook
@@ -9,11 +8,10 @@ import cv2
 
 from mano_train.exputils import argutils
 
-
 from detection.detection import detection_init, detection
 from multiprocessing import Process
 from crop import crop
-from mano_train.demo.preprocess import prepare_input, preprocess_frame
+from mano_train.demo.preprocess import preprocess_frame
 import numpy as np
 import ray
 from mano_train.netscripts.reload import reload_ray_model
@@ -21,8 +19,7 @@ import os, pickle, torch
 import time
 from handobjectdatasets.viz2d import visualize_joints_2d_cv2
 from copy import deepcopy
-from mano_train.visualize import displaymano
-from mano_train.modelutils import modelio
+from mano_train.visualize import vispy_displaymano
 
 from vispy import plot as vp
 from vispy import scene
@@ -43,10 +40,14 @@ def forward_pass_3d(input_image, pred_obj=True, left=True):
 
     return sample
 
-#@ray.remote(num_cpus=4, max_calls=1)
-def plot(hand, output, fig):
-
-    hand_idx, hand_crop, left = hand
+@ray.remote(num_cpus=5, max_calls=1)
+def plot(hands, output, i):
+    # fig = vp.Fig(size=(4, 4), show=False)
+    fig = scene.SceneCanvas(keys='interactive', always_on_top=True)
+    fig.view = fig.central_widget.add_view()
+    left = hands[i][2]
+    hand_crop = hands[i][1]
+    hand_idx = hands[i][0]
 
     # Pose Estimation (L-only)
     if left:
@@ -62,26 +63,24 @@ def plot(hand, output, fig):
 
     if left: 
         pose = cv2.flip(inpimage, 1)
-        cv2.imshow(f"Hand #{hand_idx} Pose", pose)
     
     # Mesh Reconstruction
     verts = output["verts"].cpu().detach().numpy()[0]
     # ax = fig.add_subplot(1, 1, 1, projection="3d")
-    fig.view = fig.central_widget.add_view()
+    ax = fig.add_subplot(1, 1, 1, projection="3d")
 
-    displaymano.add_mesh(fig.view, verts, faces, flip_x=left)
+    vispy_displaymano.add_mesh(ax, verts, faces, flip_x=left)
     if "objpoints3d" in output:
         objverts = output["objpoints3d"].cpu().detach().numpy()[0]
-        displaymano.add_mesh(
-            fig.view, objverts, output["objfaces"], flip_x=left, c="r"
+        vispy_displaymano.add_mesh(
+            ax, objverts, output["objfaces"], flip_x=left, c="r"
         )
 
-    fig.canvas.draw()
+    fig.show()
     w, h = fig.canvas.get_width_height()
     buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
     buf.shape = (w, h, 4)
-    
-    cv2.imshow(f"Hand #{hand_idx} Mesh", buf)
+    cv2.imshow(f"Hand #{hand_idx} Pose", pose)
 
 if __name__ == "__main__":
     ray.init()
@@ -134,44 +133,21 @@ if __name__ == "__main__":
     if cap is None:
         raise RuntimeError("OpenCV could not use webcam")
 
-    print(" ------------------- Load 3D Mesh Model Weights ------------------- \n")
-    weights = modelio.load_state_dict(args.resume)
-    weights_id = ray.put(weights)
-
     print(" ------------------- Start Ray Multiprocessing Workers ------------------- \n")
 
-    HandNets = [reload_ray_model(args.resume, opts, weights_id) for i in range(args.workers)]
+    HandNets = [reload_ray_model(args.resume, opts) for i in range(args.workers)]
     HandNets_id = ray.put(HandNets)
     
-    #attention_hands = [AttentionHook(ray.get(model.get_base_net.remote())) for model in HandNets]
-    figs = [scene.SceneCanvas(keys='interactive', always_on_top=True) for i in range(args.workers)]
-    # figs.view = figs.central_widget.add_view() #do for every fig
-    prev_toc = time.time()
+    attention_hands = [AttentionHook(model.get_base_net.remote()) for model in HandNets]
 
     while True:
-        for fig in figs:
-            fig.clf() #clear
-        
         ret, frame = cap.read()
-
-        total_tic = time.time()
-
-        source_total = total_tic - prev_toc
-        source_frame_rate = 1 / source_total
-        print(f"Source Frame Rate: {source_frame_rate}")
-
+        cv2.imshow("orig", frame)
         if not ret:
             raise RuntimeError("OpenCV could not load frame")
+        total_tic = time.time()
         
-
         hand_dets = detection(frame, fasterRCNN)
-
-        det_toc = time.time()
-        det_total = det_toc - total_tic
-        det_frame_rate = 1 / det_total
-
-        print(f"Detection Frame Rate: {det_frame_rate}")
-
         if hand_dets is not None:
             # Preprocess and crop hands
             hand_dets = [(hand_idx + 1, hand_dets[i, :]) for hand_idx, i in enumerate(range(np.minimum(10, hand_dets.shape[0]))) ]
@@ -180,34 +156,25 @@ if __name__ == "__main__":
             #     cv2.imshow(f"Hand #{hand_idx}", frame)
             #     for hand_idx, frame, side in hands
             # ]
-            hands = [(hand_idx, cv2.resize(preprocess_frame(frame), (256, 256)), not bool(side)) for hand_idx, frame, side in hands]
-            hands_input = [(hand_idx, prepare_input(frame, flip_left_right=not side,), side) for hand_idx, frame, side in hands]
+            hands = [(hand_idx, preprocess_frame(frame), not bool(side)) for hand_idx, frame, side in hands]
 
+            hands_id = ray.put(hands)
 
-            samples = [
-                forward_pass_3d(hand, left=side)
-                for hand_idx, hand, side in hands_input
-            ]
+            results_id = ray.wait([
+                forward_pass_3d.remote(HandNets_id, hands_id, i)
+                for i in range(len(hands))
+            ])
 
-
-            results= ray.get([HandNets[i%args.workers].forward.remote(samples[i], no_loss=True) for i in range(len(samples))])
-            mesh_toc = time.time()
-            mesh_total = mesh_toc - total_tic
-            mesh_frame_rate = 1 / mesh_total
-
-            print(f"Mesh Frame Rate: {mesh_frame_rate}")
+            # clear graph
+            # view.add(surface)
+            # surface.parent = None
+            # view.add(surface)
             
-            for i in range(len(results)): plot(hands[i], results[i][1], figs[i])
-        
-        total_toc = time.time()
-        total_time = total_toc - total_tic
-        frame_rate = 1 / total_time
-        
-        print(f"Plot Frame Rate: {frame_rate}\n")
-
-        prev_toc = time.time()
-        cv2.waitKey(1)
-        
+            plt.clf()
+            [
+                plot(hands_id, results_id[i], i)
+                for i in range(len(results_id))
+            ]
 
 
     cap.release()
