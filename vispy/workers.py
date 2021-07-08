@@ -1,5 +1,5 @@
 from mano_train.demo.preprocess import prepare_input, preprocess_frame
-from mano_train.visualize import displaymano
+from mano_train.visualize import vispy_displaymano
 from handobjectdatasets.viz2d import visualize_joints_2d_cv2
 import numpy as np
 from copy import deepcopy
@@ -85,10 +85,10 @@ def worker(input):
         verts = output["verts"].cpu().detach().numpy()[0]
         ax = fig.add_subplot(1, 1, 1, projection="3d")
 
-        displaymano.add_mesh(ax, verts, faces, flip_x=left)
+        vispy_displaymano.add_mesh(ax, verts, faces, flip_x=left)
         if "objpoints3d" in output:
             objverts = output["objpoints3d"].cpu().detach().numpy()[0]
-            displaymano.add_mesh(
+            vispy_displaymano.add_mesh(
                 ax, objverts, output["objfaces"], flip_x=left, c="r"
             )
 
