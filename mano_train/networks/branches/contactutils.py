@@ -62,7 +62,7 @@ def ray_triangle_intersection(ray_near, ray_dir, v123):
 def batch_mesh_contains_points(
     ray_origins,
     obj_triangles,
-    direction=torch.Tensor([0.4395064455, 0.617598629942, 0.652231566745]).cuda(),
+    direction,
 ):
     """Times efficient but memory greedy !
     Computes ALL ray/triangle intersections and then counts them to determine

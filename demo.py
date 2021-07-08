@@ -1,4 +1,5 @@
 import argparse
+from PIL import Image
 
 from matplotlib import pyplot as plt
 from mano_train.demo.attention import AttentionHook
@@ -12,7 +13,7 @@ from mano_train.exputils import argutils
 from detection.detection import detection_init, detection
 from multiprocessing import Process
 from crop import crop
-from mano_train.demo.preprocess import preprocess_frame
+from mano_train.demo.preprocess import prepare_input, preprocess_frame
 import numpy as np
 import ray
 from mano_train.netscripts.reload import reload_ray_model
@@ -21,11 +22,10 @@ import time
 from handobjectdatasets.viz2d import visualize_joints_2d_cv2
 from copy import deepcopy
 from mano_train.visualize import displaymano
+from mano_train.modelutils import modelio
 
-@ray.remote(num_cpus=5, max_calls=1)
-def forward_pass_3d(HandNets, hands, i, pred_obj=True, left=True):
-    input_image = hands[i]
-    model = HandNets[i%6]
+
+def forward_pass_3d(input_image, pred_obj=True, left=True):
     sample = {}
     sample[TransQueries.images] = input_image
     sample[BaseQueries.sides] = ["left" if left else "right"]
@@ -35,17 +35,14 @@ def forward_pass_3d(HandNets, hands, i, pred_obj=True, left=True):
         sample[TransQueries.objpoints3d] = input_image.new_ones(
             (1, 600, 3)
         ).float()
-    # print(sample)
-    _, results, _ = ray.get(model.forward.remote(sample, no_loss=True))
+    #print(sample)
 
-    return results
+    return sample
 
-@ray.remote(num_cpus=5, max_calls=1)
-def plot(hands, output, i):
-    fig = plt.figure(figsize=(4, 4))
-    left = hands[i][2]
-    hand_crop = hands[i][1]
-    hand_idx = hands[i][0]
+#@ray.remote(num_cpus=4, max_calls=1)
+def plot(hand, output, fig):
+
+    hand_idx, hand_crop, left = hand
 
     # Pose Estimation (L-only)
     if left:
@@ -61,6 +58,7 @@ def plot(hands, output, i):
 
     if left: 
         pose = cv2.flip(inpimage, 1)
+        cv2.imshow(f"Hand #{hand_idx} Pose", pose)
     
     # Mesh Reconstruction
     verts = output["verts"].cpu().detach().numpy()[0]
@@ -77,7 +75,8 @@ def plot(hands, output, i):
     w, h = fig.canvas.get_width_height()
     buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
     buf.shape = (w, h, 4)
-    cv2.imshow(f"Hand #{hand_idx} Pose", pose)
+    
+    cv2.imshow(f"Hand #{hand_idx} Mesh", buf)
 
 if __name__ == "__main__":
     ray.init()
@@ -130,14 +129,22 @@ if __name__ == "__main__":
     if cap is None:
         raise RuntimeError("OpenCV could not use webcam")
 
+    print(" ------------------- Load 3D Mesh Model Weights ------------------- \n")
+    weights = modelio.load_state_dict(args.resume)
+    weights_id = ray.put(weights)
+
     print(" ------------------- Start Ray Multiprocessing Workers ------------------- \n")
 
-    HandNets = [reload_ray_model(args.resume, opts) for i in range(args.workers)]
+    HandNets = [reload_ray_model(args.resume, opts, weights_id) for i in range(args.workers)]
     HandNets_id = ray.put(HandNets)
     
-    attention_hands = [AttentionHook(model.get_base_net.remote()) for model in HandNets]
+    #attention_hands = [AttentionHook(ray.get(model.get_base_net.remote())) for model in HandNets]
+    figs = [plt.figure(figsize=(4, 4)) for i in range(args.workers)]
 
     while True:
+        for fig in figs:
+            fig.clf()
+
         ret, frame = cap.read()
         cv2.imshow("orig", frame)
         if not ret:
@@ -153,20 +160,20 @@ if __name__ == "__main__":
             #     cv2.imshow(f"Hand #{hand_idx}", frame)
             #     for hand_idx, frame, side in hands
             # ]
-            hands = [(hand_idx, preprocess_frame(frame), not bool(side)) for hand_idx, frame, side in hands]
+            hands = [(hand_idx, cv2.resize(preprocess_frame(frame), (256, 256)), not bool(side)) for hand_idx, frame, side in hands]
+            hands_input = [(hand_idx, prepare_input(frame, flip_left_right=not side,), side) for hand_idx, frame, side in hands]
 
-            hands_id = ray.put(hands)
 
-            results_id = ray.wait([
-                forward_pass_3d.remote(HandNets_id, hands_id, i)
-                for i in range(len(hands))
-            ])
-            
-            plt.clf()
-            [
-                plot(hands_id, results_id[i], i)
-                for i in range(len(results_id))
+            samples = [
+                forward_pass_3d(hand, left=side)
+                for hand_idx, hand, side in hands_input
             ]
+
+            results= ray.get([HandNets[i%args.workers].forward.remote(samples[i], no_loss=True) for i in range(len(samples))])
+            
+            for i in range(len(results)): plot(hands[i], results[i][1], figs[i])
+
+        cv2.waitKey(1)
 
 
     cap.release()

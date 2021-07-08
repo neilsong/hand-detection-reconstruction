@@ -168,7 +168,7 @@ def compute_contact_loss(
     # Get obj triangle positions
     obj_triangles = obj_verts_pt[:, obj_faces]
     exterior = batch_mesh_contains_points(
-        hand_verts_pt.detach(), obj_triangles.detach()
+        hand_verts_pt.detach(), obj_triangles.detach(), torch.Tensor([0.4395064455, 0.617598629942, 0.652231566745]).cuda()
     )
     penetr_mask = ~exterior
     results_close = batch_index_select(obj_verts_pt, 1, min21idxs)

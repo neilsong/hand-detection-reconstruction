@@ -1,11 +1,12 @@
 import pickle
 import os
 import traceback
+from types import MethodType
 import warnings
 
 import torch
 
-from mano_train.networks.handnet import HandNet
+from mano_train.networks.handnet import HandNet, get_base_net
 from mano_train.datautils import ConcatDataloader
 from mano_train.netscripts.get_datasets import get_dataset
 from mano_train.modelutils import modelio
@@ -99,13 +100,14 @@ def reload_model(
         mano_lambda_joints3d=checkpoint_opts["mano_lambda_joints3d"],
         mano_lambda_joints2d=checkpoint_opts["mano_lambda_joints2d"],
     )
-    model = torch.nn.DataParallel(model, device_ids=gpu)
+    model = torch.nn.DataParallel(model)
     modelio.load_checkpoint(model, resume_path=model_path, strict=False)
     return model
 
 def reload_ray_model(
     model_path,
     checkpoint_opts,
+    weights_id,
     mano_root="misc/mano",
     ico_divisions=3,
     no_beta=False,
@@ -142,8 +144,10 @@ def reload_ray_model(
     if "atlas_predict_scale" not in checkpoint_opts:
         checkpoint_opts["atlas_predict_scale"] = False
 
-    RayHandNet = ray.remote(num_gpus=0.5, num_cpus=5)(HandNet)
-    HandNetActor = RayHandNet.remote(
+    #torch.nn.DataParallel.get_base_net = get_base_net
+    NNActor = ray.remote(num_gpus=0.5, num_cpus=4)(torch.nn.DataParallel)
+
+    model = HandNet(
         resnet_version=18,
         absolute_lambda=checkpoint_opts["absolute_lambda"],
         atlas_mesh=True,
@@ -170,9 +174,9 @@ def reload_ray_model(
         mano_lambda_joints3d=checkpoint_opts["mano_lambda_joints3d"],
         mano_lambda_joints2d=checkpoint_opts["mano_lambda_joints2d"],
     )
-    weights = modelio.load_state_dict(model_path)
-    weights_id = ray.put(weights)
-    ray.get(HandNetActor.load_state_dict.remote(weights_id, strict=False))
+
+    HandNetActor = NNActor.remote(model)
+    ray.wait([HandNetActor.load_state_dict.remote(weights_id)])
 
     return HandNetActor
 

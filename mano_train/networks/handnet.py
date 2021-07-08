@@ -15,6 +15,9 @@ from mano_train.networks.branches.contactloss import (
 from mano_train.networks.branches.absolutebranch import AbsoluteBranch
 from handobjectdatasets.queries import TransQueries, BaseQueries
 
+def get_base_net(cls):
+    return cls.module.base_net
+
 class HandNet(nn.Module):
     def __init__(
         self,
@@ -184,10 +187,6 @@ class HandNet(nn.Module):
             laplacian_verts=self.atlas_branch.test_verts,
         )
         self.cuda()
-        print(torch.cuda.device_count())
-    
-    def get_base_net(self):
-        return self.base_net
 
     def decay_regul(self, gamma):
         if self.atlas_loss.edge_regul_lambda is not None:

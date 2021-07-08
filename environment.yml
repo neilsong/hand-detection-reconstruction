@@ -12,7 +12,7 @@ dependencies:
   - trimesh
   - tqdm
   - pytest
-  - pyqt5
+  - 'pyqt=5*'
   - nose
   - vispy
   - pip
