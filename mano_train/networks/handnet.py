@@ -202,6 +202,10 @@ class HandNet(nn.Module):
     def forward(
         self, sample, no_loss=False, return_features=False, force_objects=False
     ):
+        device = torch.device("cuda")
+        sample[TransQueries.images].to(device)
+        sample[TransQueries.joints3d].to(device)
+        sample[TransQueries.objpoints3d].to(device)
         self.eval()
         if force_objects:
             if TransQueries.objpoints3d not in sample:

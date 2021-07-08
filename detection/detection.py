@@ -260,7 +260,7 @@ def detection(frame, fasterRCNN):
     total_toc = time.time()
     total_time = total_toc - total_tic
     frame_rate = 1 / total_time
-    print('Frame rate:', frame_rate)
+    # print('Frame rate:', frame_rate)
     # if cv2.waitKey(1) & 0xFF == ord('q'):
     #     break
 

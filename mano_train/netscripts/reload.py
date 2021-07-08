@@ -142,7 +142,7 @@ def reload_ray_model(
     if "atlas_predict_scale" not in checkpoint_opts:
         checkpoint_opts["atlas_predict_scale"] = False
 
-    RayHandNet = ray.remote(num_gpus=0.5)(HandNet)
+    RayHandNet = ray.remote(num_gpus=0.5, num_cpus=5)(HandNet)
     HandNetActor = RayHandNet.remote(
         resnet_version=18,
         absolute_lambda=checkpoint_opts["absolute_lambda"],
