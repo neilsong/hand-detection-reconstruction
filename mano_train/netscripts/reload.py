@@ -148,7 +148,7 @@ def reload_ray_model(
 
     #torch.nn.DataParallel.get_base_net = get_base_net
     gpus = os.environ["CUDA_VISIBLE_DEVICES"].split(',')
-    NNActor = ray.remote(num_gpus=(float(len(gpus)))/float(workers), num_cpus=(float(multiprocessing.cpu_count())/float(workers)))(torch.nn.DataParallel)
+    NNActor = ray.remote(num_gpus=(float(len(gpus)))/float(workers), num_cpus=(float(multiprocessing.cpu_count())/float(workers)/2.0))(torch.nn.DataParallel)
 
     model = HandNet(
         resnet_version=18,
