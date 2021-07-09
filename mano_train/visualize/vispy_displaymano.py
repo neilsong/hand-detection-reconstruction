@@ -10,7 +10,8 @@ from handobjectdatasets.viz2d import visualize_joints_2d
 
 from vispy import plot as vp
 from vispy.geometry import polygon
-from vispy.scene.visuals import MeshVisual
+from vispy.scene.visuals import Mesh
+from vispy.visuals.mesh import MeshVisual
 
 def add_mesh(view, verts, faces, flip_x=False, c="b", alpha=0.1):
     # view.view_init(elev=90, azim=-90) #add this?
