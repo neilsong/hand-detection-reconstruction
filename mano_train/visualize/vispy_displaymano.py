@@ -19,7 +19,8 @@ def add_mesh(view, verts, faces, flip_x=False, c="b", alpha=0.1):
     # mesh = Poly3DCollection(verts[faces], alpha=alpha)
     
 
-    mesh = MeshVisual(vertices=verts[faces], faces=faces, face_colors=(141 / 255, 184 / 255, 226 / 255), edge_color=(0 / 255, 0 / 255, 112 / 255))
+    mesh = Mesh(vertices=verts[faces], faces=faces,)
+    # mesh = Mesh(vertices=verts[faces], faces=faces, face_colors=(141 / 255, 184 / 255, 226 / 255), edge_colors=(0 / 255, 0 / 255, 112 / 255))
     
     view.add(mesh)
     # cam_equal_aspect_3d(view, verts, flip_x=flip_x) #update this function
