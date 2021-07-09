@@ -142,10 +142,10 @@ if __name__ == "__main__":
     # figs = [plt.figure(figsize=(4, 4)) for i in range(args.hands)]
     prev_toc = time.time()
 
+    canvas = scene.SceneCanvas(keys='interactive', always_on_top=True)
     while True:
         # for fig in figs:
         #     fig.clf()
-        canvas = scene.SceneCanvas(keys='interactive', always_on_top=True)
 
         ret, frame = cap.read()
 
