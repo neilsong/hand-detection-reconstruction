@@ -16,6 +16,7 @@ Yana Hasson, Gül Varol, Dimitris Tzionas, Igor Kalevatykh, Michael J. Black,  I
 Dandan Shan, Jiaqi Geng*, Michelle Shu*, David F. Fouhey, CVPR 2020, Oral
 
  - [Project and dataset webpage](http://fouheylab.eecs.umich.edu/~dandans/projects/100DOH/)
+ - [Project repository](https://github.com/ddshan/hand_object_detector.git)
 
 # Get the code
 
@@ -25,14 +26,14 @@ Dandan Shan, Jiaqi Geng*, Michelle Shu*, David F. Fouhey, CVPR 2020, Oral
 ## Download model files
 
 - Download model files from [here](http://www.di.ens.fr/willow/research/obman/release_models.zip) `wget http://www.di.ens.fr/willow/research/obman/release_models.zip` (Note: directly downloading the files is probably faster)
-- unzip `unzip release_models.zip`
+- Unzip `unzip release_models.zip`
 
 ## Install python dependencies
 
-- create conda environment with dependencies: `conda env create -f environment.yml`
-- activate environment: `conda activate hand-det-recon`
-- install detection dependencies: `conda install pytorch torchvision cudatoolkit=10.1 -c pytorch`
-- build detection libraries: `cd lib && python setup.py build develop`
+- Create conda environment with dependencies: `conda env create -f environment.yml`
+- Activate environment: `conda activate hand-det-recon`
+- Install detection dependencies: `conda install pytorch torchvision cudatoolkit=10.1 -c pytorch`
+- Build detection library: `cd lib && python setup.py build develop`
 
 ## Install the MANO PyTorch layer
 
@@ -64,21 +65,9 @@ hand-detection-reconstruction/
 
 You can test it on a recorded video or live using a webcam by launching :
 
-`python webcam_demo.py --resume release_models/obman/checkpoint.pth.tar  --hand_side left`
+`python webcam_demo.py --resume release_models/obman/checkpoint.pth.tar  --hands 2 --checksession 1 --checkepoch 10 --checkpoint 90193`
 
-Hand side detection is not handled in this pipeline, therefore, you should explicitly indicate whether you want to use the right or left hand with `--hand_side`.
-
-Note that the video demo has some lag time, which comes from the visualization bottleneck (matplotlib image rendering is quite slow).
-
-### Limitations
-
-- This demo doesn't operate hand detection, so the model expects a roughly centered hand
-- As we are deforming a sphere, the topology of the object is 0, resulting in hand poses curving in on objects (incorrect pose)
-- the model is trained only on hands holding objects, and therefore doesn't perform well on hands in the absence of objects for poses that do not resemble common grasp poses.
-- the model is trained on grasping hands only, and therefore struggles with hand poses that are associated with object-handling
-  - In addition to the models, we also provide a hand-only model trained on various hand datasets, including our ObMan dataset, that captures a wider variety of hand poses
-  - to try it, launch `python webcam_demo.py --resume release_models/hands_only/checkpoint.pth.tar`
-  - Note that this model also regresses a translation and scale parameter that allows to overlay the predicted 2D joints on the images according to an orthographic projection model
+Concurrency with 3D mesh rendering is achieved by assigning a single to model to a single hand, so the max number of hands must be specified to achieve 1 to 1 concurrency. Models will be distributed as evenly as possible across all available GPUs.
 
 # Citations
 
@@ -107,7 +96,7 @@ If you find this code useful for your research, consider citing:
 ## AtlasNet code
 
 Code related to [AtlasNet](http://imagine.enpc.fr/~groueixt/atlasnet/) is in large part adapted from the official [AtlasNet repository](https://github.com/ThibaultGROUEIX/AtlasNet).
-Thanks [Thibault](https://github.com/ThibaultGROUEIX/) for the provided code !
+Thanks [Thibault](https://github.com/ThibaultGROUEIX/) for the provided code!
 
 ## Hand evaluation code
 
@@ -116,9 +105,9 @@ Code for computing hand evaluation metrics was reused from [hand3d](https://gith
 
 ## Laplacian regularization loss
 
-[Code](https://github.com/akanazawa/cmr) for the laplacian regularization and precious advice was provided by [Angjoo Kanazawa](https://people.eecs.berkeley.edu/~kanazawa/) !
+[Code](https://github.com/akanazawa/cmr) for the laplacian regularization and precious advice was provided by [Angjoo Kanazawa](https://people.eecs.berkeley.edu/~kanazawa/)!
 
 
 ## First Hand Action Benchmark dataset
 
-Helpful advice to work with the dataset was provided by [Guillermo Garcia-Hernando](https://guiggh.github.io/) !
+Helpful advice to work with the dataset was provided by [Guillermo Garcia-Hernando](https://guiggh.github.io/)!
