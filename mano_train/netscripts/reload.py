@@ -3,6 +3,7 @@ import os
 import traceback
 from types import MethodType
 import warnings
+import multiprocessing
 
 import torch
 
@@ -108,6 +109,7 @@ def reload_ray_model(
     model_path,
     checkpoint_opts,
     weights_id,
+    workers,
     mano_root="misc/mano",
     ico_divisions=3,
     no_beta=False,
@@ -145,7 +147,7 @@ def reload_ray_model(
         checkpoint_opts["atlas_predict_scale"] = False
 
     #torch.nn.DataParallel.get_base_net = get_base_net
-    NNActor = ray.remote(num_gpus=0.5, num_cpus=6)(torch.nn.DataParallel)
+    NNActor = ray.remote(num_gpus=(float(len(ray.get_gpu_ids()))/float(workers)), num_cpus=(float(multiprocessing.cpu_count())/float(workers)))(torch.nn.DataParallel)
 
     model = HandNet(
         resnet_version=18,

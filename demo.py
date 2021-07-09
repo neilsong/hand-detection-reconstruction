@@ -1,8 +1,6 @@
 import argparse
-from PIL import Image
 
 from matplotlib import pyplot as plt
-from mano_train.demo.attention import AttentionHook
 from handobjectdatasets.queries import BaseQueries, TransQueries
 
 import cv2
@@ -17,7 +15,7 @@ from mano_train.demo.preprocess import prepare_input, preprocess_frame
 import numpy as np
 import ray
 from mano_train.netscripts.reload import reload_ray_model
-import os, pickle, torch
+import os, pickle
 import time
 from handobjectdatasets.viz2d import visualize_joints_2d_cv2
 from copy import deepcopy
@@ -101,7 +99,7 @@ if __name__ == "__main__":
                       default=90193, type=int, required=True)
     parser.add_argument('--workers', dest='workers',
                       help='Number of workers to initialize',
-                      default=3, type=int,)                  
+                      default=6, type=int,)                
     args = parser.parse_args()
     argutils.print_args(args)
 
@@ -135,7 +133,7 @@ if __name__ == "__main__":
 
     print(" ------------------- Start Ray Multiprocessing Workers ------------------- \n")
 
-    HandNets = [reload_ray_model(args.resume, opts, weights_id) for i in range(args.workers)]
+    HandNets = [reload_ray_model(args.resume, opts, weights_id, args.workers) for i in range(args.workers)]
     HandNets_id = ray.put(HandNets)
     
     #attention_hands = [AttentionHook(ray.get(model.get_base_net.remote())) for model in HandNets]
