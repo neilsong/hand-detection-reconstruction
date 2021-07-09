@@ -67,10 +67,9 @@ def plot(hand, output, canvas):
     # view.camera = 'turntable'
 
     mesh = Mesh(vertices=verts[faces], faces=faces,)
-    # view.add(mesh)
-    view.camera = scene.TurntableCamera()
-    mesh.parent = None
     view.add(mesh)
+    view.camera = scene.TurntableCamera()
+    
 
     # vispy_displaymano.add_mesh(view, verts, faces, flip_x=left)
     # if "objpoints3d" in output:
@@ -78,6 +77,11 @@ def plot(hand, output, canvas):
     #     vispy_displaymano.add_mesh(
     #         view, objverts, output["objfaces"], flip_x=left, c="r"
     #     )
+
+    canvas.show()
+
+    mesh.parent = None
+    view.add(mesh)
 
     canvas.show()
     # w, h = fig.canvas.get_width_height()
