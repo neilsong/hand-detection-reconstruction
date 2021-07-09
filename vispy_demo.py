@@ -25,6 +25,7 @@ from mano_train.modelutils import modelio
 from vispy import plot as vp
 from vispy import scene
 from vispy import app, gloo, visuals, io, geometry
+from vispy.scene.visuals import Mesh
 
 def forward_pass_3d(input_image, pred_obj=True, left=True):
     sample = {}
@@ -65,12 +66,18 @@ def plot(hand, output, canvas):
     view = canvas.central_widget.add_view()
     # view.camera = 'turntable'
 
-    vispy_displaymano.add_mesh(view, verts, faces, flip_x=left)
-    if "objpoints3d" in output:
-        objverts = output["objpoints3d"].cpu().detach().numpy()[0]
-        vispy_displaymano.add_mesh(
-            view, objverts, output["objfaces"], flip_x=left, c="r"
-        )
+    mesh = Mesh(vertices=verts[faces], faces=faces,)
+    view.add(mesh)
+    view.camera = scene.TurntableCamera()
+    mesh.parent = None
+    view.add(mesh)
+
+    # vispy_displaymano.add_mesh(view, verts, faces, flip_x=left)
+    # if "objpoints3d" in output:
+    #     objverts = output["objpoints3d"].cpu().detach().numpy()[0]
+    #     vispy_displaymano.add_mesh(
+    #         view, objverts, output["objfaces"], flip_x=left, c="r"
+    #     )
 
     canvas.show()
     # w, h = fig.canvas.get_width_height()
