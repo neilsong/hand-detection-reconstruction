@@ -67,7 +67,7 @@ def plot(hand, output, canvas):
     # view.camera = 'turntable'
 
     mesh = Mesh(vertices=verts[faces], faces=faces,)
-    view.add(mesh)
+    # view.add(mesh)
     view.camera = scene.TurntableCamera()
     mesh.parent = None
     view.add(mesh)
