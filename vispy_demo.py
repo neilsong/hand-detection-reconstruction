@@ -66,8 +66,6 @@ def plot(hand, output, canvas):
     view = canvas.central_widget.add_view()
     # view.camera = 'turntable'
 
-    
-
     vispy_displaymano.add_mesh(view, verts, faces, flip_x=left)
     if "objpoints3d" in output:
         objverts = output["objpoints3d"].cpu().detach().numpy()[0]
