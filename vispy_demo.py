@@ -63,7 +63,7 @@ def plot(hand, output, canvas):
     verts = output["verts"].cpu().detach().numpy()[0]
     # ax = fig.add_subplot(1, 1, 1, projection="3d")
     view = canvas.central_widget.add_view()
-    view.camera = 'turntable'
+    # view.camera = 'turntable'
 
     vispy_displaymano.add_mesh(view, verts, faces, flip_x=left)
     if "objpoints3d" in output:
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     # figs = [plt.figure(figsize=(4, 4)) for i in range(args.hands)]
     prev_toc = time.time()
 
-    canvas = scene.SceneCanvas(keys='interactive')
+    canvas = scene.SceneCanvas(keys='interactive', always_on_top=True)
     while True:
         # for fig in figs:
         #     fig.clf()
