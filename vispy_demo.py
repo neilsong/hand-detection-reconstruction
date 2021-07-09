@@ -69,11 +69,9 @@ def plot(hand, output, canvas):
     mesh = Mesh(vertices=verts[faces], faces=faces,)
     view.add(mesh)
     view.camera = scene.TurntableCamera()
-    mesh.visible = False
     canvas.show()
 
-    mesh.visible = True
-    canvas.show()
+    return mesh
 
     # vispy_displaymano.add_mesh(view, verts, faces, flip_x=left)
     # if "objpoints3d" in output:
@@ -152,10 +150,10 @@ if __name__ == "__main__":
     prev_toc = time.time()
 
     canvas = scene.SceneCanvas(keys='interactive', always_on_top=True)
+    mesh = None
     while True:
         # for fig in figs:
         #     fig.clf()
-
         ret, frame = cap.read()
 
         total_tic = time.time()
@@ -201,7 +199,9 @@ if __name__ == "__main__":
 
             print(f"Mesh Frame Rate: {mesh_frame_rate}")
             
-            for i in range(len(results)): plot(hands[i], results[i][1], canvas)
+            for i in range(len(results)):
+                if mesh: mesh.visible = False
+                mesh = plot(hands[i], results[i][1], canvas)
         
         total_toc = time.time()
         total_time = total_toc - total_tic
