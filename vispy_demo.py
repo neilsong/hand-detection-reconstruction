@@ -72,6 +72,9 @@ def plot(hand, output, canvas):
     mesh.visible = False
     canvas.show()
 
+    mesh.visible = True
+    canvas.show()
+
     # vispy_displaymano.add_mesh(view, verts, faces, flip_x=left)
     # if "objpoints3d" in output:
     #     objverts = output["objpoints3d"].cpu().detach().numpy()[0]
