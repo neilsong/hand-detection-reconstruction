@@ -73,11 +73,11 @@ def plot(hand, output, canvas):
         )
 
     canvas.show()
-    w, h = fig.canvas.get_width_height()
-    buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
-    buf.shape = (w, h, 4)
+    # w, h = fig.canvas.get_width_height()
+    # buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
+    # buf.shape = (w, h, 4)
     
-    cv2.imshow(f"Hand #{hand_idx} Mesh", buf)
+    # cv2.imshow(f"Hand #{hand_idx} Mesh", buf)
 
 if __name__ == "__main__":
     ray.init()

@@ -16,11 +16,13 @@ def add_mesh(view, verts, faces, flip_x=False, c="b", alpha=0.1):
     # view.view_init(elev=90, azim=-90) #add this?
     # mesh = polygon.PolygonData(verts[faces], alpha=alpha)
     # mesh = Poly3DCollection(verts[faces], alpha=alpha)
+    
+    
     mesh = Mesh(vertices=verts[faces], faces=faces, face_color=(141 / 255, 184 / 255, 226 / 255), edge_color=(0 / 255, 0 / 255, 112 / 255))
     
     view.add(mesh)
-    cam_equal_aspect_3d(view, verts, flip_x=flip_x) #update this function
-    plt.tight_layout() #convert
+    # cam_equal_aspect_3d(view, verts, flip_x=flip_x) #update this function
+    # plt.tight_layout() #convert
 
 def cam_equal_aspect_3d(ax, verts, flip_x=False):
     """
