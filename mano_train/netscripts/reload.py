@@ -147,7 +147,8 @@ def reload_ray_model(
         checkpoint_opts["atlas_predict_scale"] = False
 
     #torch.nn.DataParallel.get_base_net = get_base_net
-    NNActor = ray.remote(num_gpus=(float(len(ray.get_gpu_ids()))/float(workers)), num_cpus=(float(multiprocessing.cpu_count())/float(workers)))(torch.nn.DataParallel)
+    gpus = os.environ["CUDA_VISIBLE_DEVICES"].split(',')
+    NNActor = ray.remote(num_gpus=(float(len(gpus)))/float(workers), num_cpus=(float(multiprocessing.cpu_count())/float(workers)))(torch.nn.DataParallel)
 
     model = HandNet(
         resnet_version=18,
