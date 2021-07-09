@@ -76,7 +76,6 @@ def plot(hand, output, canvas):
     # w, h = fig.canvas.get_width_height()
     # buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
     # buf.shape = (w, h, 4)
-    
     # cv2.imshow(f"Hand #{hand_idx} Mesh", buf)
 
 if __name__ == "__main__":
@@ -142,7 +141,7 @@ if __name__ == "__main__":
     # figs = [plt.figure(figsize=(4, 4)) for i in range(args.hands)]
     prev_toc = time.time()
 
-    canvas = scene.SceneCanvas(keys='interactive', always_on_top=True)
+    canvas = scene.SceneCanvas(keys='interactive')
     while True:
         # for fig in figs:
         #     fig.clf()
