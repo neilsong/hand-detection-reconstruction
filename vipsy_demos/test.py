@@ -43,8 +43,7 @@ def forward_pass_3d(input_image, pred_obj=True, left=True):
 @ray.remote(num_cpus=5, max_calls=1)
 def plot(hands, output, i):
     # fig = vp.Fig(size=(4, 4), show=False)
-    fig = scene.SceneCanvas(keys='interactive', always_on_top=True)
-    fig.view = fig.central_widget.add_view()
+    canvas = scene.SceneCanvas(keys='interactive', always_on_top=True)
     left = hands[i][2]
     hand_crop = hands[i][1]
     hand_idx = hands[i][0]
@@ -67,16 +66,17 @@ def plot(hands, output, i):
     # Mesh Reconstruction
     verts = output["verts"].cpu().detach().numpy()[0]
     # ax = fig.add_subplot(1, 1, 1, projection="3d")
-    ax = fig.add_subplot(1, 1, 1, projection="3d")
+    view = canvas.central_widget.add_view()
+    view.camera = 'turntable'
 
-    vispy_displaymano.add_mesh(ax, verts, faces, flip_x=left)
+    vispy_displaymano.add_mesh(view, verts, faces, flip_x=left)
     if "objpoints3d" in output:
         objverts = output["objpoints3d"].cpu().detach().numpy()[0]
         vispy_displaymano.add_mesh(
-            ax, objverts, output["objfaces"], flip_x=left, c="r"
+            view, objverts, output["objfaces"], flip_x=left, c="r"
         )
 
-    fig.show()
+    canvas.show()
     w, h = fig.canvas.get_width_height()
     buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
     buf.shape = (w, h, 4)

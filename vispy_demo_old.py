@@ -1,6 +1,8 @@
 import argparse
+from PIL import Image
 
 from matplotlib import pyplot as plt
+from mano_train.demo.attention import AttentionHook
 from handobjectdatasets.queries import BaseQueries, TransQueries
 
 import cv2
@@ -15,16 +17,17 @@ from mano_train.demo.preprocess import prepare_input, preprocess_frame
 import numpy as np
 import ray
 from mano_train.netscripts.reload import reload_ray_model
-import os, pickle
+import os, pickle, torch
 import time
 from handobjectdatasets.viz2d import visualize_joints_2d_cv2
 from copy import deepcopy
-from mano_train.visualize import vispy_displaymano
+from mano_train.visualize import displaymano
 from mano_train.modelutils import modelio
 
 from vispy import plot as vp
 from vispy import scene
 from vispy import app, gloo, visuals, io, geometry
+
 
 def forward_pass_3d(input_image, pred_obj=True, left=True):
     sample = {}
@@ -36,11 +39,12 @@ def forward_pass_3d(input_image, pred_obj=True, left=True):
         sample[TransQueries.objpoints3d] = input_image.new_ones(
             (1, 600, 3)
         ).float()
+    #print(sample)
 
     return sample
 
-def plot(hand, output, canvas):
-
+#@ray.remote(num_cpus=4, max_calls=1)
+def plot(hand, output, fig):
     hand_idx, hand_crop, left = hand
 
     # Pose Estimation (L-only)
@@ -62,17 +66,16 @@ def plot(hand, output, canvas):
     # Mesh Reconstruction
     verts = output["verts"].cpu().detach().numpy()[0]
     # ax = fig.add_subplot(1, 1, 1, projection="3d")
-    view = canvas.central_widget.add_view()
-    view.camera = 'turntable'
+    fig.view = fig.central_widget.add_view()
 
-    vispy_displaymano.add_mesh(view, verts, faces, flip_x=left)
+    displaymano.add_mesh(fig.view, verts, faces, flip_x=left)
     if "objpoints3d" in output:
         objverts = output["objpoints3d"].cpu().detach().numpy()[0]
-        vispy_displaymano.add_mesh(
-            view, objverts, output["objfaces"], flip_x=left, c="r"
+        displaymano.add_mesh(
+            fig.view, objverts, output["objfaces"], flip_x=left, c="r"
         )
 
-    canvas.show()
+    fig.canvas.draw()
     w, h = fig.canvas.get_width_height()
     buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
     buf.shape = (w, h, 4)
@@ -102,7 +105,7 @@ if __name__ == "__main__":
                       default=90193, type=int, required=True)
     parser.add_argument('--workers', dest='workers',
                       help='Number of workers to initialize',
-                      default=6, type=int,)                
+                      default=3, type=int,)                  
     args = parser.parse_args()
     argutils.print_args(args)
 
@@ -136,17 +139,18 @@ if __name__ == "__main__":
 
     print(" ------------------- Start Ray Multiprocessing Workers ------------------- \n")
 
-    HandNets = [reload_ray_model(args.resume, opts, weights_id, args.workers) for i in range(args.workers)]
+    HandNets = [reload_ray_model(args.resume, opts, weights_id) for i in range(args.workers)]
     HandNets_id = ray.put(HandNets)
     
-    # figs = [plt.figure(figsize=(4, 4)) for i in range(args.workers)]
+    #attention_hands = [AttentionHook(ray.get(model.get_base_net.remote())) for model in HandNets]
+    figs = [scene.SceneCanvas(keys='interactive', always_on_top=True) for i in range(args.workers)]
+    # figs.view = figs.central_widget.add_view() #do for every fig
     prev_toc = time.time()
 
     while True:
-        # for fig in figs:
-        #     fig.clf()
-        canvas = scene.SceneCanvas(keys='interactive', always_on_top=True)
-
+        for fig in figs:
+            fig.clf() #clear
+        
         ret, frame = cap.read()
 
         total_tic = time.time()
@@ -192,7 +196,7 @@ if __name__ == "__main__":
 
             print(f"Mesh Frame Rate: {mesh_frame_rate}")
             
-            for i in range(len(results)): plot(hands[i], results[i][1], canvas)
+            for i in range(len(results)): plot(hands[i], results[i][1], figs[i])
         
         total_toc = time.time()
         total_time = total_toc - total_tic

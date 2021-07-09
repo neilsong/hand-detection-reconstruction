@@ -20,7 +20,7 @@ def add_mesh(view, verts, faces, flip_x=False, c="b", alpha=0.1):
     
     view.add(mesh)
     cam_equal_aspect_3d(view, verts, flip_x=flip_x) #update this function
-    plt.tight_layout()
+    plt.tight_layout() #convert
 
 def cam_equal_aspect_3d(ax, verts, flip_x=False):
     """
