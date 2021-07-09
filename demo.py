@@ -97,8 +97,8 @@ if __name__ == "__main__":
     parser.add_argument('--checkpoint', dest='checkpoint',
                       help='Checkpoint to load network',
                       default=90193, type=int, required=True)
-    parser.add_argument('--workers', dest='workers',
-                      help='Number of workers to initialize',
+    parser.add_argument('--hands', dest='hands',
+                      help='Number of hand models to initialize',
                       default=6, type=int,)                
     args = parser.parse_args()
     argutils.print_args(args)
@@ -131,13 +131,13 @@ if __name__ == "__main__":
     weights = modelio.load_state_dict(args.resume)
     weights_id = ray.put(weights)
 
-    print(" ------------------- Start Ray Multiprocessing Workers ------------------- \n")
+    print(" ------------------- Start Ray Multiprocessing hands ------------------- \n")
 
-    HandNets = [reload_ray_model(args.resume, opts, weights_id, args.workers) for i in range(args.workers)]
+    HandNets = [reload_ray_model(args.resume, opts, weights_id, args.hands) for i in range(args.hands)]
     HandNets_id = ray.put(HandNets)
     
     #attention_hands = [AttentionHook(ray.get(model.get_base_net.remote())) for model in HandNets]
-    figs = [plt.figure(figsize=(4, 4)) for i in range(args.workers)]
+    figs = [plt.figure(figsize=(4, 4)) for i in range(args.hands)]
     prev_toc = time.time()
 
     while True:
@@ -182,7 +182,7 @@ if __name__ == "__main__":
             ]
 
 
-            results= ray.get([HandNets[i%args.workers].forward.remote(samples[i], no_loss=True) for i in range(len(samples))])
+            results= ray.get([HandNets[i%args.hands].forward.remote(samples[i], no_loss=True) for i in range(len(samples))])
             mesh_toc = time.time()
             mesh_total = mesh_toc - total_tic
             mesh_frame_rate = 1 / mesh_total
