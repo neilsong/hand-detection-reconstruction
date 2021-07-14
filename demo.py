@@ -180,7 +180,6 @@ if __name__ == "__main__":
     iternum = 1
     while os.path.exists(output_directory + str(iternum) + '.mp4'):
         iternum+=1
-    # writer = cv2.VideoWriter(output_directory + str(iternum) + '.mp4', fourcc, 30, (w, h))
 
     # Load model options
     checkpoint = os.path.dirname(args.resume)
@@ -210,6 +209,8 @@ if __name__ == "__main__":
         frames.append(frame)
         ret, frame = cap.read()
         framenum += 1
+    
+    cap.release()
 
     print(" ------------------- Load Detection Model Weights ------------------- \n")
     model_id = get_state_dict(args.checksession, args.checkepoch, args.checkpoint)
@@ -276,6 +277,10 @@ if __name__ == "__main__":
         
         mesh_frames.append(createframe(meshes=meshes, mode=1 if len(meshes)%2==0 else 2, frame=det_frame, meta=meta))
 
-for frame in mesh_frames:
-    cv2.imshow("final frame", frame)
-    cv2.waitKey(1)
+    writer = cv2.VideoWriter(output_directory + str(iternum) + '.mp4', fourcc, 30, (w, h))
+
+    for frame in mesh_frames:
+        writer.write(frame)
+    
+    writer.release()
+    cv2.destroyAllWindows()
