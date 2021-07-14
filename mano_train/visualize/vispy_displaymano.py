@@ -26,6 +26,7 @@ def add_mesh(view, verts, faces, flip_x=False, c="b", alpha=0.1):
     # cam_equal_aspect_3d(view, verts, flip_x=flip_x) #update this function
     # plt.tight_layout() #convert
 
+#not used
 def cam_equal_aspect_3d(ax, verts, flip_x=False):
     """
     Centers view on cuboid containing hand and flips y and z axis
