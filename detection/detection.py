@@ -33,6 +33,8 @@ from model.utils.blob import im_list_to_blob
 from model.faster_rcnn.vgg16 import vgg16
 from model.faster_rcnn.resnet import resnet
 import pdb
+import ray
+import multiprocessing
 
 try:
     xrange          # Python 2
@@ -73,7 +75,7 @@ def _get_image_blob(im):
 
   return blob, np.array(im_scale_factors)
 
-def detection_init(checksession, checkepoch, checkpoint):
+def get_state_dict(checksession, checkepoch, checkpoint):
   import os.path as osp
   import sys
 
@@ -104,86 +106,41 @@ def detection_init(checksession, checkepoch, checkpoint):
   if not os.path.exists(model_dir):
     raise Exception('There is no input directory for loading network from ' + model_dir)
   load_name = os.path.join(model_dir, 'faster_rcnn_{}_{}_{}.pth'.format(checksession, checkepoch, checkpoint))
+  checkpoint = torch.load(load_name)
+
+  model_id = ray.put(checkpoint['model'])
+  
+  return model_id
+
+def detection_init(model_id):
 
   pascal_classes = np.asarray(['__background__', 'targetobject', 'hand']) 
   set_cfgs = ['ANCHOR_SCALES', '[8, 16, 32, 64]', 'ANCHOR_RATIOS', '[0.5, 1, 2]'] 
 
-  # initilize the network here.
-  fasterRCNN = resnet(pascal_classes, 101, pretrained=False, class_agnostic=False)
+  # Init Network
+  gpus = os.environ["CUDA_VISIBLE_DEVICES"].split(',')
+  RCNNActor = ray.remote(num_gpus=1, num_cpus=int(float(multiprocessing.cpu_count())/float(len(gpus)))-1)(resnet)
+  fasterRCNN = RCNNActor.remote(pascal_classes, 101, pretrained=False, class_agnostic=False)
 
-  fasterRCNN.create_architecture()
+  ray.wait([fasterRCNN.create_architecture.remote()])
+  
+  ray.wait([fasterRCNN.load_state_dict.remote(model_id)])
 
-  print("load checkpoint %s" % (load_name))
-  checkpoint = torch.load(load_name)
-  fasterRCNN.load_state_dict(checkpoint['model'])
-  if 'pooling_mode' in checkpoint.keys():
-    cfg.POOLING_MODE = checkpoint['pooling_mode']
-
-  print('load model successfully!')
+  print('Load model successfully!')
 
   return fasterRCNN
 
 
-def detection(frame, fasterRCNN):
-  
-  pascal_classes = np.asarray(['__background__', 'targetobject', 'hand']) 
-  # initilize the tensor holder here.
-  im_data = torch.FloatTensor(1)
-  im_info = torch.FloatTensor(1)
-  num_boxes = torch.LongTensor(1)
-  gt_boxes = torch.FloatTensor(1)
-  box_info = torch.FloatTensor(1) 
-
-  # ship to cuda
-  im_data = im_data.cuda()
-  im_info = im_info.cuda()
-  num_boxes = num_boxes.cuda()
-  gt_boxes = gt_boxes.cuda()
-
-  with torch.no_grad():
-    cfg.CUDA = True
-    fasterRCNN.cuda()
-
-    fasterRCNN.eval()
-
-    start = time.time()
-    max_per_image = 100
-    thresh_hand = 0.5 
-    thresh_obj = 0.5
-    vis = True
-
-    # print(f'thresh_hand = {thresh_hand}')
-    # print(f'thnres_obj = {thresh_obj}')
-
-
-    total_tic = time.time()
-    im_in = np.array(frame)
-    # bgr
-    im = im_in
-
-    blobs, im_scales = _get_image_blob(im)
-    assert len(im_scales) == 1, "Only single-image batch implemented"
-    im_blob = blobs
-    im_info_np = np.array([[im_blob.shape[1], im_blob.shape[2], im_scales[0]]], dtype=np.float32)
-
-    im_data_pt = torch.from_numpy(im_blob)
-    im_data_pt = im_data_pt.permute(0, 3, 1, 2)
-    im_info_pt = torch.from_numpy(im_info_np)
-
-    with torch.no_grad():
-            im_data.resize_(im_data_pt.size()).copy_(im_data_pt)
-            im_info.resize_(im_info_pt.size()).copy_(im_info_pt)
-            gt_boxes.resize_(1, 1, 5).zero_()
-            num_boxes.resize_(1).zero_()
-            box_info.resize_(1, 1, 5).zero_() 
-
-    # pdb.set_trace()
-    det_tic = time.time()
-
+def detection(result):
     rois, cls_prob, bbox_pred, \
     rpn_loss_cls, rpn_loss_box, \
     RCNN_loss_cls, RCNN_loss_bbox, \
-    rois_label, loss_list = fasterRCNN(im_data, im_info, gt_boxes, num_boxes, box_info) 
+    rois_label, loss_list, im_info, im_scales, im = result
+
+    thresh_hand = 0.5 
+    thresh_obj = 0.5
+
+    pascal_classes = np.asarray(['__background__', 'targetobject', 'hand']) 
 
     scores = cls_prob.data
     boxes = rois.data[:, :, 1:5]
@@ -221,10 +178,8 @@ def detection(frame, fasterRCNN):
     scores = scores.squeeze()
     pred_boxes = pred_boxes.squeeze()
     det_toc = time.time()
-    detect_time = det_toc - det_tic
     misc_tic = time.time()
-    if vis:
-        im2show = np.copy(im)
+    im2show = np.copy(im)
     obj_dets, hand_dets = None, None
     for j in xrange(1, len(pascal_classes)):
         # inds = torch.nonzero(scores[:,j] > thresh).view(-1)
@@ -248,20 +203,19 @@ def detection(frame, fasterRCNN):
           if pascal_classes[j] == 'hand':
             hand_dets = cls_dets.cpu().numpy()
           
-    if vis:
-      # visualization
-      im2show = vis_detections_filtered_objects_PIL(im2show, obj_dets, hand_dets, thresh_hand, thresh_obj)
+    im2show = vis_detections_filtered_objects_PIL(im2show, obj_dets, hand_dets, thresh_hand, thresh_obj)
 
     misc_toc = time.time()
     nms_time = misc_toc - misc_tic
     im2show = im2show.convert('RGB')
     open_cv_image = np.array(im2show)
-    cv2.imshow("frame", cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2RGB))
-    total_toc = time.time()
-    total_time = total_toc - total_tic
-    frame_rate = 1 / total_time
-    print('Pure Det Frame rate:', frame_rate)
+    open_cv_image = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2RGB)
+
+    # total_toc = time.time()
+    # total_time = total_toc - total_tic
+    # frame_rate = 1 / total_time
+    # print('Pure Det Frame rate:', frame_rate)
     # if cv2.waitKey(1) & 0xFF == ord('q'):
     #     break
 
-    return hand_dets
+    return (hand_dets, open_cv_image)

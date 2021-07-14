@@ -19,6 +19,7 @@ release_models/
 
 .DS_Store
 .vscode
+*.mp4
 
 # READ THIS BEFORE YOU REFACTOR ME
 #

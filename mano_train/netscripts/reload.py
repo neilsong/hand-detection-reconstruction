@@ -4,6 +4,7 @@ import traceback
 from types import MethodType
 import warnings
 import multiprocessing
+import math
 
 import torch
 
@@ -148,8 +149,7 @@ def reload_ray_model(
 
     #torch.nn.DataParallel.get_base_net = get_base_net
     gpus = os.environ["CUDA_VISIBLE_DEVICES"].split(',')
-    NNActor = ray.remote(num_gpus=(float(len(gpus)))/float(workers), num_cpus=(float(multiprocessing.cpu_count())/float(workers)/2.0))(torch.nn.DataParallel)
-
+    NNActor = ray.remote(num_gpus=(float(len(gpus)))/float(workers) if (float(len(gpus)))/float(workers) <= 0.5 else 0.5, num_cpus=math.floor(float(multiprocessing.cpu_count())/float(workers))-1)(torch.nn.DataParallel)
     model = HandNet(
         resnet_version=18,
         absolute_lambda=checkpoint_opts["absolute_lambda"],

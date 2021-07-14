@@ -1,4 +1,5 @@
 import random
+from model.utils.config import cfg_from_file
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -6,7 +7,6 @@ from torch.autograd import Variable
 import torchvision.models as models
 from torch.autograd import Variable
 import numpy as np
-from model.utils.config import cfg
 from model.rpn.rpn import _RPN
 from model.extension_layers import extension_layers
 
@@ -20,10 +20,48 @@ from model.rpn.proposal_target_layer_cascade import _ProposalTargetLayer
 import time
 import pdb
 from model.utils.net_utils import _smooth_l1_loss, _crop_pool_layer, _affine_grid_gen, _affine_theta
+from model.utils.blob import im_list_to_blob
+import cv2
+
+def _get_image_blob(im):
+  """Converts an image into a network input.
+  Arguments:
+    im (ndarray): a color image in BGR order
+  Returns:
+    blob (ndarray): a data blob holding an image pyramid
+    im_scale_factors (list): list of image scales (relative to im) used
+      in the image pyramid
+  """
+  from model.utils.config import cfg
+  im_orig = im.astype(np.float32, copy=True)
+  im_orig -= cfg.PIXEL_MEANS
+
+  im_shape = im_orig.shape
+  im_size_min = np.min(im_shape[0:2])
+  im_size_max = np.max(im_shape[0:2])
+
+  processed_ims = []
+  im_scale_factors = []
+
+  for target_size in cfg.TEST.SCALES:
+    im_scale = float(target_size) / float(im_size_min)
+    # Prevent the biggest axis from being more than MAX_SIZE
+    if np.round(im_scale * im_size_max) > cfg.TEST.MAX_SIZE:
+      im_scale = float(cfg.TEST.MAX_SIZE) / float(im_size_max)
+    im = cv2.resize(im_orig, None, None, fx=im_scale, fy=im_scale,
+            interpolation=cv2.INTER_LINEAR)
+    im_scale_factors.append(im_scale)
+    processed_ims.append(im)
+
+  # Create a blob to hold the input images
+  blob = im_list_to_blob(processed_ims)
+
+  return blob, np.array(im_scale_factors)
 
 class _fasterRCNN(nn.Module):
     """ faster RCNN """
     def __init__(self, classes, class_agnostic):
+        from model.utils.config import cfg
         super(_fasterRCNN, self).__init__()
         self.classes = classes
         self.n_classes = len(classes)
@@ -43,7 +81,62 @@ class _fasterRCNN(nn.Module):
         self.RCNN_roi_align = ROIAlign((cfg.POOLING_SIZE, cfg.POOLING_SIZE), 1.0/16.0, 0)
         self.extension_layer = extension_layers.extension_layer()
 
-    def forward(self, im_data, im_info, gt_boxes, num_boxes, box_info):
+    def forward(self, frame):
+        from model.utils.config import cfg
+        cfg_from_file("detection/cfgs/res101.yml")
+
+        # initilize the tensor holder here.
+        im_data = torch.FloatTensor(1)
+        im_info = torch.FloatTensor(1)
+        num_boxes = torch.LongTensor(1)
+        gt_boxes = torch.FloatTensor(1)
+        box_info = torch.FloatTensor(1) 
+
+        # ship to cuda
+        im_data = im_data.cuda()
+        im_info = im_info.cuda()
+        num_boxes = num_boxes.cuda()
+        gt_boxes = gt_boxes.cuda()
+
+        with torch.no_grad():
+            cfg.CUDA = True
+            self.cuda()
+
+            self.eval()
+
+            max_per_image = 100
+            
+            vis = True
+
+            # print(f'thresh_hand = {thresh_hand}')
+            # print(f'thnres_obj = {thresh_obj}')
+
+
+            total_tic = time.time()
+            im_in = np.array(frame)
+            # bgr
+            im = im_in
+
+            blobs, im_scales = _get_image_blob(im)
+            assert len(im_scales) == 1, "Only single-image batch implemented"
+            im_blob = blobs
+            im_info_np = np.array([[im_blob.shape[1], im_blob.shape[2], im_scales[0]]], dtype=np.float32)
+
+            im_data_pt = torch.from_numpy(im_blob)
+            im_data_pt = im_data_pt.permute(0, 3, 1, 2)
+            im_info_pt = torch.from_numpy(im_info_np)
+
+            with torch.no_grad():
+                    im_data.resize_(im_data_pt.size()).copy_(im_data_pt)
+                    im_info.resize_(im_info_pt.size()).copy_(im_info_pt)
+                    gt_boxes.resize_(1, 1, 5).zero_()
+                    num_boxes.resize_(1).zero_()
+                    box_info.resize_(1, 1, 5).zero_() 
+
+            # pdb.set_trace()
+            det_tic = time.time()
+
+
         batch_size = im_data.size(0)
 
         im_info = im_info.data
@@ -81,6 +174,7 @@ class _fasterRCNN(nn.Module):
         rois_padded = Variable(self.enlarge_bbox(im_info, rois, 0.3))
 
         # do roi pooling based on predicted rois
+        
         if cfg.POOLING_MODE == 'align':
             pooled_feat = self.RCNN_roi_align(base_feat, rois.view(-1, 5))
             pooled_feat_padded = self.RCNN_roi_align(base_feat, rois_padded.view(-1, 5))
@@ -130,7 +224,7 @@ class _fasterRCNN(nn.Module):
         cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
         bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
 
-        return rois, cls_prob, bbox_pred, rpn_loss_cls, rpn_loss_bbox, RCNN_loss_cls, RCNN_loss_bbox, rois_label, loss_list
+        return rois, cls_prob, bbox_pred, rpn_loss_cls, rpn_loss_bbox, RCNN_loss_cls, RCNN_loss_bbox, rois_label, loss_list, im_info, im_scales, im
 
     def enlarge_bbox(self, im_info, rois, ratio=0.5):
         rois_width, rois_height = (rois[:,:,3]-rois[:,:,1]), (rois[:,:,4]-rois[:,:,2])
@@ -147,6 +241,7 @@ class _fasterRCNN(nn.Module):
         return rois_padded
 
     def _init_weights(self):
+        from model.utils.config import cfg
         def normal_init(m, mean, stddev, truncated=False):
             """
             weight initalizer: truncated normal and random normal.
