@@ -1,4 +1,5 @@
 import argparse
+from PIL import Image, ImageDraw, ImageFont
 
 from matplotlib import pyplot as plt
 from handobjectdatasets.queries import BaseQueries, TransQueries
@@ -37,72 +38,47 @@ def forward_pass_3d(input_image, pred_obj=True, left=True):
 
     return sample
 
-def addtxt(frame, meta, top):
+def gentext(meta):
     hand_idx, side = meta
-    white = np.zeros([20, int(frame_h/2),3],dtype=np.uint8)
-    white.fill(255)
-    font = cv2.FONT_HERSHEY_SIMPLEX
+    
+    font = ImageFont.truetype('lib/model/utils/times_b.ttf', size=12)
     text = f"{'Left' if side else 'Right'} #{hand_idx}"
+    
+    curr = deepcopy(white_text)
+    draw = ImageDraw.Draw(curr)
+    w1, h1 = draw.textsize(text, font=font)
+    draw.text(((int(frame_h/2)-w1)/2,(20-h1)/2), text, fill="black", font=font)
+    curr = np.array(curr)
+    curr = cv2.cvtColor(curr, cv2.COLOR_BGR2RGBA)
 
-    # get boundary of this text
-    textsize = cv2.getTextSize(text, font, 0.47, 1)[0]
-
-    # get coords based on boundary
-    textX = (white.shape[1] - textsize[0]) / 2
-    textY = (white.shape[0] + textsize[1]) / 2
-
-    # add text centered on image
-    cv2.putText(white, text, (int(textX), int(textY) ), font, 0.47, (0, 0, 0), 1, cv2.LINE_AA)
-
-    text_white = cv2.cvtColor(white, cv2.COLOR_RGB2RGBA)
-
-    return cv2.vconcat([text_white, frame] if top else [frame, text_white])
+    return curr
 
 
-def createframe(**kwargs):
-    if kwargs['mode']==0:
-        white = np.zeros([h, w-frame_w,3],dtype=np.uint8)
-        white.fill(255)
-        # white = cv2.cvtColor(white, cv2.COLOR_RGB2RGBA)
-        return cv2.hconcat([kwargs['frame'], white])
-    elif kwargs['mode']==1:
-        vert_meshes = [cv2.cvtColor(kwargs['frame'], cv2.COLOR_RGB2RGBA)]
-        for i in range(0,len(kwargs['meshes']),2):
-            top = kwargs['meshes'][i]
-            bot = kwargs['meshes'][i+1]
-            top = addtxt(top, kwargs['meta'][i], True)
-            bot = addtxt(bot, kwargs['meta'][i+1], False)
-            
-            vert_meshes.append(cv2.vconcat([top, bot]))
-        if w-frame_w - int(len(kwargs['meshes'])/2):
-            rest = np.zeros([h, w-frame_w - int(frame_h/2) * int(len(kwargs['meshes'])/2),3],dtype=np.uint8)
-            rest.fill(255)
-            rest = cv2.cvtColor(rest, cv2.COLOR_RGB2RGBA)
-            vert_meshes.append(rest)
+def createframe(mode=0,frame=[], meshes=[], meta=[]):
+    if mode==0:
+        return cv2.hconcat([frame, white0])
+    elif mode==1:
+        vert_meshes = [cv2.cvtColor(frame, cv2.COLOR_RGB2RGBA)]
+        for i in range(0,len(meshes),2):
+            top = meshes[i]
+            bot = meshes[i+1]
+            vert_meshes.append(cv2.vconcat([ white1[int(meta[i][1] == True)][meta[i][0]-1], top, bot, white1[int(meta[i+1][1]==True)][meta[i+1][0]-1]]))
+        if len(meshes) < mhands: vert_meshes.append(rest[int(len(meshes)/2)-1])
         return cv2.hconcat(vert_meshes)
-    elif kwargs['mode']==2:
-        vert_meshes = [cv2.cvtColor(kwargs['frame'], cv2.COLOR_RGB2RGBA)]
-        last = len(kwargs['meshes']) - 1
+    elif mode==2:
+        vert_meshes = [cv2.cvtColor(frame, cv2.COLOR_RGB2RGBA)]
+        last = len(meshes) - 1
         for i in range(0,last,2):
-            top = kwargs['meshes'][i]
-            bot = kwargs['meshes'][i+1]
-            top = addtxt(top, kwargs['meta'][i], True)
-            bot = addtxt(bot, kwargs['meta'][i+1], False)
-            
-            vert_meshes.append(cv2.vconcat([top, bot]))
-        white =  np.zeros([int(frame_h/2), int(frame_h/2),3], dtype=np.uint8)
-        white.fill(255)
-        white = cv2.cvtColor(white, cv2.COLOR_RGB2RGBA)
-        vert_meshes.append(cv2.vconcat([addtxt(kwargs['meshes'][last], kwargs['meta'][last], True), white]))
-        if w-frame_w - int(len(kwargs['meshes'])/2 + 1):
-            rest = np.zeros([h, w-frame_w - int(frame_h/2) * int(len(kwargs['meshes'])/2 + 1),3],dtype=np.uint8)
-            rest.fill(255)
-            rest = cv2.cvtColor(rest, cv2.COLOR_RGB2RGBA)
-            vert_meshes.append(rest)
+            top = meshes[i]
+            bot = meshes[i+1]
+            vert_meshes.append(cv2.vconcat([ white1[int(meta[i][1]==True)][meta[i][0]-1], top, bot, white1[int(meta[i+1][1]==True)][meta[i+1][0]-1]]))
+        if last: vert_meshes.append(cv2.vconcat([top, odd_white]))
+        if len(meshes) < mhands: vert_meshes.append(rest[int((len(meshes)+1)/2) - 1])
         return cv2.hconcat(vert_meshes)
 
-#@ray.remote(num_cpus=4, max_calls=1)
-def plot(hand, output, fig):
+@ray.remote
+def plot(hand, verts, fig):
+    fig.clf()
 
     hand_idx, hand_crop, left = hand
 
@@ -123,28 +99,26 @@ def plot(hand, output, fig):
     #     cv2.imshow(f"Hand #{hand_idx} Pose", pose)
     
     # Mesh Reconstruction
-    verts = output["verts"].cpu().detach().numpy()[0]
+    
     ax = fig.add_subplot(1, 1, 1, projection="3d")
 
     displaymano.add_mesh(ax, verts, faces, flip_x=left)
-    if "objpoints3d" in output:
-        objverts = output["objpoints3d"].cpu().detach().numpy()[0]
-        displaymano.add_mesh(
-            ax, objverts, output["objfaces"], flip_x=left, c="r"
-        )
 
     fig.canvas.draw()
     w, h = fig.canvas.get_width_height()
     buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
     buf.shape = (w, h, 4)
     
-    return buf
+    return cv2.resize(buf, (int(frame_h/2), int(frame_h/2)-20))
 
 if __name__ == "__main__":
     ray.init()
     gpus = len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))
 
-    global frame_w, frame_h, w, h
+    global frame_w, frame_h, w, h, white0, white1, rest, white_text, odd_white, mhands
+    white1 = [[],[]]
+    rest = []
+
 
     # init frames
     frames, det_frames, dets_arr, mesh_frames = [], [], [], []
@@ -171,7 +145,7 @@ if __name__ == "__main__":
     argutils.print_args(args)
 
     # Init CV2 Video Writer
-    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     current_directory = os.getcwd()
     output_directory = os.path.join(current_directory, 'output/')
     
@@ -238,8 +212,28 @@ if __name__ == "__main__":
 
     figs = [plt.figure(figsize=(4, 4)) for i in range(mhands)]
     import math
-    w = frame_w + (int(math.floor(mhands/2)*math.floor(frame_w/2)) if mhands%2==0 else int(math.floor(mhands/2+1)*math.floor(frame_w/2)))
+    w = frame_w + (int(math.floor(mhands/2)*math.floor(frame_h/2)) if mhands%2==0 else int(math.floor(mhands/2+1)*math.floor(frame_h/2)))
     h = frame_h
+
+    white0 = np.zeros([h, w-frame_w,3],dtype=np.uint8)
+    white0.fill(255)
+    white_text = np.zeros([20, int(frame_h/2),3],dtype=np.uint8)
+    white_text.fill(255)
+    white_text = white_text[:,:,::-1]
+    white_text = Image.fromarray(white_text).convert("RGB")
+    for i in range(1, mhands+1):
+        white1[0].append(gentext((i, False)))
+        white1[1].append(gentext((i, True)))
+
+        cv2.imshow("text", white1[0][0])
+        cv2.waitKey(0)
+
+        if i%2==0:
+            rest.append( cv2.cvtColor( white0[:,0: (w-frame_w - int(frame_h/2) * int(i/2))], cv2.COLOR_RGB2RGBA))
+
+    odd_white =  np.zeros([int(frame_h/2)+20, int(frame_h/2),3], dtype=np.uint8)
+    odd_white.fill(255)
+    odd_white = cv2.cvtColor(odd_white, cv2.COLOR_RGB2RGBA)
 
     print(" ------------------- Load 3D Mesh Model Weights ------------------- \n")
     weights = modelio.load_state_dict(args.resume)
@@ -272,14 +266,23 @@ if __name__ == "__main__":
         ]
 
         meta = [i[1:3] for i in samples]
+        start = time.time()
         results= ray.get([HandNets[i%mhands].forward.remote(samples[i][0], no_loss=True) for i in range(len(samples))])
-        meshes = [ cv2.resize(plot(hands[i], results[i][1], figs[i]), (int(frame_h/2), int(frame_h/2)-20)) for i in range(len(results))]
+        mesh_end = time.time()
+        meshes = ray.get([plot.remote(hands[i], results[i][1]["verts"].cpu().detach().numpy()[0], figs[i]) for i in range(len(results))])
+        frame_end = time.time()
+        mesh_frames.append((meshes, 1 if len(meshes)%2==0 else 2, det_frame, meta))
         
-        mesh_frames.append(createframe(meshes=meshes, mode=1 if len(meshes)%2==0 else 2, frame=det_frame, meta=meta))
+        print(f"\n\nFrame #{i+1} complete\nMesh Time: {(mesh_end - start)}\nPlot Time: {(frame_end - mesh_end)}")
 
-    writer = cv2.VideoWriter(output_directory + str(iternum) + '.mp4', fourcc, 30, (w, h))
+    writer = cv2.VideoWriter(output_directory + str(iternum) + '.mp4', fourcc, 20, (w, h))
 
     for frame in mesh_frames:
+        if type(frame) is not tuple:
+            frame = createframe(frame=frame, mode=0)
+        else:
+            frame = createframe(meshes=frame[0], mode=frame[1], frame=frame[2], meta=frame[3])
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2RGB)
         writer.write(frame)
     
     writer.release()
