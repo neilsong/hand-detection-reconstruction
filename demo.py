@@ -104,28 +104,28 @@ def plot(hand, verts, fig):
 
     displaymano.add_mesh(ax, verts, faces, flip_x=left)
 
-    fig1 = plt.figure(figsize=(9, 9))
-    ax1 = fig1.add_subplot(1, 1, 1, projection="3d")
-    displaymano.add_mesh(ax1, verts, faces, flip_x=left)
-    plt.axis('off')
-    fig1.canvas.draw()
-    w1, h1 = fig1.canvas.get_width_height()
-    buf1 = np.fromstring(fig1.canvas.tostring_argb(), dtype=np.uint8)
-    buf1.shape = (w1, h1, 4)
+    if display_mesh:
+        fig1 = plt.figure(figsize=(9, 9))
+        ax1 = fig1.add_subplot(1, 1, 1, projection="3d")
+        displaymano.add_mesh(ax1, verts, faces, flip_x=left)
+        plt.axis('off')
+        fig1.canvas.draw()
+        w1, h1 = fig1.canvas.get_width_height()
+        buf1 = np.fromstring(fig1.canvas.tostring_argb(), dtype=np.uint8)
+        buf1.shape = (w1, h1, 4)
 
-    current_directory = os.getcwd()
-    output_directory = os.path.join(current_directory, 'output_im/')
-    
-    if not os.path.exists(output_directory):
-        os.mkdir(output_directory)
-    iternum = 1
-    while os.path.exists(output_directory + "im" + str(iternum) + '.png'):
-        iternum+=1
-    
-    cv2.imwrite(output_directory + "im" + str(iternum) + '.png', buf1)
-    plt.axis('on')
+        current_directory = os.getcwd()
+        output_directory = os.path.join(current_directory, 'output_im/')
+        
+        if not os.path.exists(output_directory):
+            os.mkdir(output_directory)
+        iternum = 1
+        while os.path.exists(output_directory + "im" + str(iternum) + '.png'):
+            iternum+=1
+        
+        cv2.imwrite(output_directory + "im" + str(iternum) + '.png', buf1)
+        plt.axis('on')
 
-    
     fig.canvas.draw()
     w, h = fig.canvas.get_width_height()
     buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     ray.init()
     gpus = len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))
 
-    global frame_w, frame_h, w, h, white0, white1, rest, white_text, odd_white, mhands
+    global frame_w, frame_h, w, h, white0, white1, rest, white_text, odd_white, mhands, display_mesh
     white1 = [[],[]]
     rest = []
 
@@ -162,9 +162,12 @@ if __name__ == "__main__":
                       default=10, type=int)
     parser.add_argument('--checkpoint', dest='checkpoint',
                       help='Checkpoint to load network',
-                      default=90193, type=int, required=True)             
+                      default=90193, type=int, required=True)
+    parser.add_argument('--display_mesh', action='store_true')              
     args = parser.parse_args()
     argutils.print_args(args)
+
+    display_mesh = args.display_mesh
 
     # Init CV2 Video Writer
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
