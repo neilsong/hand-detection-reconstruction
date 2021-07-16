@@ -225,9 +225,6 @@ if __name__ == "__main__":
         white1[0].append(gentext((i, False)))
         white1[1].append(gentext((i, True)))
 
-        cv2.imshow("text", white1[0][0])
-        cv2.waitKey(0)
-
         if i%2==0:
             rest.append( cv2.cvtColor( white0[:,0: (w-frame_w - int(frame_h/2) * int(i/2))], cv2.COLOR_RGB2RGBA))
 
