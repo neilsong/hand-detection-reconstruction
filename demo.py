@@ -106,7 +106,7 @@ def plot(hand, verts, fig):
 
     fig1 = plt.figure(figsize=(9, 9))
     ax1 = fig1.add_subplot(1, 1, 1, projection="3d")
-    displaymano.add_mesh(ax1, verts, faces, flip_x=left, c="white")
+    displaymano.add_mesh(ax1, verts, faces, flip_x=left)
     fig1.canvas.draw()
     w1, h1 = fig1.canvas.get_width_height()
     buf1 = np.fromstring(fig1.canvas.tostring_argb(), dtype=np.uint8)
@@ -121,7 +121,7 @@ def plot(hand, verts, fig):
     while os.path.exists(output_directory + "im" + str(iternum) + '.png'):
         iternum+=1
 
-    cv2.imwrite("im{}.png".format(iternum), buf1)
+    cv2.imwrite(output_directory + "im" + str(iternum) + '.png', buf1)
 
     fig.canvas.draw()
     w, h = fig.canvas.get_width_height()
