@@ -1,6 +1,6 @@
 # Monocular RGB Hand-Object Detection and 3D Hand Reconstruction - Demo
 
-A fully-integrated, real-time, multi-focal hand and object detection and 3D hand reconstruction system. Hand detection and state/side classification are used to address limitations in 3D reconstruction model.
+A fully-integrated, multi-focal hand and object detection and 3D hand reconstruction system. Hand detection and state/side classification are used to address limitations in 3D reconstruction model.
 # Papers
 ## Learning Joint Reconstruction of Hands and Manipulated Objects
 
