@@ -113,7 +113,7 @@ def plot(hand, verts, fig):
     buf1.shape = (w1, h1, 4)
 
     current_directory = os.getcwd()
-    output_directory = os.path.join(current_directory, 'output/')
+    output_directory = os.path.join(current_directory, 'output_im/')
     
     if not os.path.exists(output_directory):
         os.mkdir(output_directory)
