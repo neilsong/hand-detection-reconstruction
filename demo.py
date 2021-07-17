@@ -235,7 +235,7 @@ if __name__ == "__main__":
     for actor in DetNets:
         ray.kill(actor)
 
-    figs = [plt.figure(figsize=(4, 4)) for i in range(mhands)]
+    figs = [plt.figure(figsize=(20, 20)) for i in range(mhands)]
     import math
     w = frame_w + (int(math.floor(mhands/2)*math.floor(frame_h/2)) if mhands%2==0 else int(math.floor(mhands/2+1)*math.floor(frame_h/2)))
     h = frame_h
