@@ -76,7 +76,7 @@ def createframe(mode=0,frame=[], meshes=[], meta=[]):
         if len(meshes) < mhands: vert_meshes.append(rest[int((len(meshes)+1)/2) - 1])
         return cv2.hconcat(vert_meshes)
 
-@ray.remote(memory=2500 * 1024 * 1024)
+@ray.remote(memory=4000 * 1024 * 1024)
 def plot(hand, verts, fig):
     fig.clf()
 
