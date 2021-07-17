@@ -295,6 +295,8 @@ if __name__ == "__main__":
         meshes = np.copy(ray.get([plot.remote(hands[i], results[i][1]["verts"].cpu().detach().numpy()[0], figs[i]) for i in range(len(results))]))
         frame_end = time.time()
         mesh_frames.append((meshes, 1 if len(meshes)%2==0 else 2, det_frame, meta))
+        del results
+        del meshes
         
         print(f"\n\nFrame #{i+1} complete\nMesh Time: {(mesh_end - start)}\nPlot Time: {(frame_end - mesh_end)}")
 
