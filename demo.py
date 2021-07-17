@@ -222,7 +222,7 @@ if __name__ == "__main__":
     
     print(" ------------------- Start Detection ------------------- \n")
 
-    results= ray.get([DetNets[i%gpus].forward.remote(frames[i]) for i in range(len(frames))])
+    results= np.copy(ray.get([DetNets[i%gpus].forward.remote(frames[i]) for i in range(len(frames))]))
     mhands = 0
     for result in results:
         hand_dets, det_frame  = detection(result)
