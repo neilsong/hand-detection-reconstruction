@@ -292,9 +292,9 @@ if __name__ == "__main__":
 
         meta = [i[1:3] for i in samples]
         start = time.time()
-        results= ray.get([HandNets[i%mhands].forward.remote(samples[i][0], no_loss=True) for i in range(len(samples))])
+        results= np.copy(ray.get([HandNets[i%mhands].forward.remote(samples[i][0], no_loss=True) for i in range(len(samples))]))
         mesh_end = time.time()
-        meshes = ray.get([plot.remote(hands[i], results[i][1]["verts"].cpu().detach().numpy()[0], figs[i]) for i in range(len(results))])
+        meshes = np.copy(ray.get([plot.remote(hands[i], results[i][1]["verts"].cpu().detach().numpy()[0], figs[i]) for i in range(len(results))]))
         frame_end = time.time()
         mesh_frames.append((meshes, 1 if len(meshes)%2==0 else 2, det_frame, meta))
         
