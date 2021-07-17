@@ -150,7 +150,7 @@ def reload_ray_model(
 
     #torch.nn.DataParallel.get_base_net = get_base_net
     gpus = os.environ["CUDA_VISIBLE_DEVICES"].split(',')
-    model_gpus = (float(len(gpus)))/float(workers)
+    model_gpus = (float(len(gpus)))/float(workers) - 0.1
     if model_gpus > 0.5 and model_gpus < 1:
         model_gpus = 0.5
     elif model_gpus > 1:
