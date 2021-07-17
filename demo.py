@@ -200,11 +200,14 @@ if __name__ == "__main__":
     ret, frame = cap.read()
     frame_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     frame_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_h = 480
+    frame_w = 640
     len_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     framenum = 1
     while True:
         if framenum == len_frames:
             break
+        frame = cv2.resize(frame, (640, 480))
         frames.append(frame)
         ret, frame = cap.read()
         framenum += 1
