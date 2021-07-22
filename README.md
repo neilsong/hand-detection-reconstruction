@@ -1,7 +1,11 @@
 # Monocular RGB Hand-Object Detection and 3D Hand Reconstruction - Demo
 
 A fully-integrated, multi-focal hand and object detection and 3D hand reconstruction system. Hand detection and state/side classification are used to address limitations in 3D reconstruction model.
-# Papers
+
+- [Project page](https://sites.google.com/view/cgalab/hand-object-detection-process)
+- [Project repository](https://github.com/neilsong/hand-detection-reconstruction.git)
+
+# Papers Referenced
 ## Learning Joint Reconstruction of Hands and Manipulated Objects
 
 Yana Hasson, Gül Varol, Dimitris Tzionas, Igor Kalevatykh, Michael J. Black,  Ivan Laptev, Cordelia Schmid, CVPR 2019
@@ -63,9 +67,9 @@ hand-detection-reconstruction/
 
 # Demo
 
-You can test it on a recorded video or live using a webcam by launching :
+You can test it on a recorded video by launching :
 
-`python webcam_demo.py --resume release_models/obman/checkpoint.pth.tar  --hands 2 --checksession 1 --checkepoch 10 --checkpoint 90193`
+`python webcam_demo.py --resume release_models/obman/checkpoint.pth.tar  --checksession 1 --checkepoch 10 --checkpoint 90193 --video_path in.mp4`
 
 Concurrency with 3D mesh rendering is achieved by assigning a single to model to a single hand, so the max number of hands must be specified to achieve 1 to 1 concurrency. Models will be distributed as evenly as possible across all available GPUs.
 
