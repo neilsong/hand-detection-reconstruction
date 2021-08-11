@@ -22,3 +22,5 @@ dependencies:
     - tensorboardX
     - jinja2
     - 'ray[default]'
+    - pyrender
+    - trimesh
