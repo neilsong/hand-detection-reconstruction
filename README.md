@@ -2,7 +2,7 @@
 
 A fully-integrated, multi-focal hand and object detection and 3D hand reconstruction system. Hand detection and state/side classification are used to address limitations in 3D reconstruction model.
 
-- [Project page](https://sites.google.com/view/cgalab/hand-object-detection-process)
+- [Project page](https://sites.google.com/view/cgalab/home)
 - [Project repository](https://github.com/neilsong/hand-detection-reconstruction.git)
 
 # Papers Referenced
