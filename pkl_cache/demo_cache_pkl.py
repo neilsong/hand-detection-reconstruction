@@ -207,7 +207,7 @@ if __name__ == "__main__":
         if framenum == len_frames:
             break
         # frame = cv2.resize(frame, (640, 480))
-        frames.append(frame)
+        frames.append(cv2.flip(frame, 1))
         ret, frame = cap.read()
         framenum += 1
     
@@ -286,8 +286,9 @@ if __name__ == "__main__":
         #     cv2.imshow(f"Hand #{hand_idx}", frame)
         #     for hand_idx, frame, side in hands
         # ]
-        hands = [(hand_idx, cv2.resize(preprocess_frame(frame), (256, 256)), not bool(side)) for hand_idx, frame, side in hands]
+        hands = [(hand_idx, cv2.resize(preprocess_frame(frame), ((int(frame_h/2), int(frame_h/2)-20))), not bool(side)) for hand_idx, frame, side in hands]
         hands_pkl.append(hands)
+        hands = [(hand_idx, cv2.flip(cv2.resize(frame, (256,256)), 0), not bool(side) )for hand_idx, frame, side in hands]
         hands_input = [(hand_idx, prepare_input(frame, flip_left_right=not side,), side) for hand_idx, frame, side in hands]
 
 
@@ -302,6 +303,7 @@ if __name__ == "__main__":
 
         results_pkl.append(results)
     
+    print("Pickling Results")
     results_pklfile = open('pkl_cache/results_pkl', 'ab')
     pickle.dump(results_pkl, results_pklfile)
     results_pklfile.close()

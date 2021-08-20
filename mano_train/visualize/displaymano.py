@@ -444,7 +444,7 @@ def add_joints_proj(ax, gt_keypoints, pred_keypoints, proj="z", joint_idxs=False
     ax.set_aspect("equal")
 
 #*******used in workers.py and here*******
-def add_mesh(ax, verts, faces, flip_x=False, c="b", alpha=0.1):
+def add_mesh(ax, verts, faces, flip_x=False, c="b", alpha=1):
     ax.view_init(elev=90, azim=-90)
     mesh = Poly3DCollection(verts[faces], alpha=alpha)
     if c == "b":

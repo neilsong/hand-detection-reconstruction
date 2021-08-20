@@ -12,20 +12,14 @@ import cv2
 from mano_train.exputils import argutils
 
 
-from detection.detection import detection_init, detection, get_state_dict
-from multiprocessing import Process
-from utils.crop import crop
-from mano_train.demo.preprocess import prepare_input, preprocess_frame
+from mano_train.demo.preprocess import prepare_input
 import numpy as np
 import ray
-from mano_train.netscripts.reload import reload_ray_model
 import os, pickle
-import time
-from handobjectdatasets.viz2d import visualize_joints_2d_cv2
 from copy import deepcopy
 from mano_train.visualize import displaymano
-from mano_train.modelutils import modelio
 from utils.pyrender_util import render_mesh
+
 
 
 def forward_pass_3d(input_image, pred_obj=True, left=True):
@@ -79,16 +73,100 @@ def createframe(mode=0,frame=[], meshes=[], meta=[]):
         vert_meshes.append(cv2.vconcat([white1[int(meta[last][1]==True)][meta[last][0]-1], meshes[last], odd_white]))
         if len(meshes) < mhands: vert_meshes.append(rest[int((len(meshes)+1)/2) - 1])
         return cv2.hconcat(vert_meshes)
+
+
 # @ray.remote
-def pyren_plot(i, hand, verts, fig):
-    im = render_mesh( hand, verts, faces)
+def pyren_plot(i, hand, verts, scale, trans):
+    im = render_mesh( hand, verts, faces, scale, trans)
     im = cv2.cvtColor(im, cv2.COLOR_BGR2RGBA)
     return cv2.resize(im, (int(frame_h/2), int(frame_h/2)-20))
 
     # Implement Display Mesh
 
+# @ray.remote
+def plot(hand, verts, scale, trans):
+
+    hand_idx, hand_crop, left = hand
+
+    # Pose Estimation (L-only)
+    # if left:
+    #     inpimage = deepcopy(hand_crop)
+    # else:
+    #     inpimage = deepcopy(np.flip(hand_crop, axis=1))
+
+    # if "joints2d" in output:
+    #     joints2d = output["joints2d"]
+    #     pose = visualize_joints_2d_cv2(
+    #         inpimage, joints2d.cpu().detach().numpy()[0]
+    #     )
+
+    # if left: 
+    #     pose = cv2.flip(inpimage, 1)
+    #     cv2.imshow(f"Hand #{hand_idx} Pose", pose)
+    
+    # Mesh Reconstruction
+    
+    fig = plt.figure(figsize=(9, 9))
+    ax = fig.add_subplot(1, 1, 1, projection="3d")
+    displaymano.add_mesh(ax, verts, faces, flip_x=left)
+    plt.axis('off')
+
+    if display_mesh:
+        fig1 = plt.figure(figsize=(9, 9))
+        ax1 = fig1.add_subplot(1, 1, 1, projection="3d")
+        displaymano.add_mesh(ax1, verts, faces, flip_x=left)
+        plt.axis('off')
+        fig1.canvas.draw()
+        w1, h1 = fig1.canvas.get_width_height()
+        buf1 = np.fromstring(fig1.canvas.tostring_argb(), dtype=np.uint8)
+        buf1.shape = (w1, h1, 4)
+
+        current_directory = os.getcwd()
+        output_directory = os.path.join(current_directory, 'output_im/')
+        
+        if not os.path.exists(output_directory):
+            os.mkdir(output_directory)
+        iternum = 1
+        while os.path.exists(output_directory + "im" + str(iternum) + '.png'):
+            iternum+=1
+        
+        cv2.imwrite(output_directory + "im" + str(iternum) + '.png', buf1)
+        plt.axis('on')
+
+    fig.canvas.draw()
+    w, h = fig.canvas.get_width_height()
+    buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
+    buf.shape = (w, h, 4)
+
+    im_render = cv2.resize(buf, (int(frame_h/2), int(frame_h/2)-20))
+    im_render = cv2.cvtColor(im_render, cv2.COLOR_RGBA2RGB)
+    im_render = cv2.flip(im_render, 1)
+    #im_render = cv2.rotate(im_render, cv2.ROTATE_180)
+    im_real = hand_crop
+    im_real = im_real[:, :, ::-1]
+
+    height, width, channels = im_render.shape
+
+    crop_width = width * (1.0/scale)
+    crop_height = height * (1.0/scale)
+
+    mid_x, mid_y = int(width/2), int(height/2)
+    cw2, ch2 = int(crop_width/2), int(crop_height/2) 
+    im_render = im_render[mid_y-ch2:mid_y+ch2, mid_x-cw2:mid_x+cw2]
+
+    im_render = cv2.resize(im_render, (int(frame_h/2), int(frame_h/2)-20))
+
+    im = 0.4 * im_real.astype(np.float32) + 0.6 * im_render.astype(np.float32)
+    im = im.astype(np.uint8)
+    im = cv2.cvtColor(im, cv2.COLOR_RGB2BGRA)
+    plt.axis('on')
+    plt.close()
+    
+    return im
+
+
 if __name__ == "__main__":
-    ray.init()
+    #ray.init()
     gpus = len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))
 
     global frame_w, frame_h, w, h, white0, white1, rest, white_text, odd_white, mhands, display_mesh
@@ -126,7 +204,7 @@ if __name__ == "__main__":
     # Init CV2 Video Writer
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     current_directory = os.getcwd()
-    output_directory = os.path.join(current_directory, 'output/')
+    output_directory = os.path.join(current_directory, 'pkl_cache/output/')
     
     if not os.path.exists(output_directory):
         os.mkdir(output_directory)
@@ -182,7 +260,7 @@ if __name__ == "__main__":
         if type(hands) is not int:
             mhands = max(mhands, len(hands))
 
-    figs = [plt.figure(figsize=(20, 20)) for i in range(mhands)]
+    #figs = [plt.figure(figsize=(4, 4)) for i in range(mhands)]
     import math
     w = frame_w + (int(math.floor(mhands/2)*math.floor(frame_h/2)) if mhands%2==0 else int(math.floor(mhands/2+1)*math.floor(frame_h/2)))
     h = frame_h
@@ -207,11 +285,12 @@ if __name__ == "__main__":
     writer = cv2.VideoWriter(output_directory + str(iternum) + '.mp4', fourcc, 20, (w, h))
 
     for i in range(len(frames)):
+    # for i in range(50, 51):
         hands = hands_pkl[i]
         frame = frames[i]
         if type(det_frames[i]) is int: 
             frame = createframe(frame=frame, mode=0)
-            cv2.imwrite(f"/home/cgalab/handobj/hand-detection-reconstruction/pkl_cache/final/{i}_frame.jpg", frame)
+            writer.write(frame)
             print(i)
             continue
         hands_input = [(hand_idx, prepare_input(frame, flip_left_right=not side,), side) for hand_idx, frame, side in hands]
@@ -222,8 +301,9 @@ if __name__ == "__main__":
 
         meta = [i[1:3] for i in samples]
         results = results_pkl[i]
+        # f"pkl_cache/store/{i}_{j}.jpg", hands[j], results[j][1]["verts"].cpu().detach().numpy()[0], results[j][3], results[j][4])
         meshes = [
-            pyren_plot(f"pkl_cache/store/{i}_{j}.jpg", hands[j], results[j][1]["verts"].cpu().detach().numpy()[0], figs[j]) for j in range(len(results))
+            plot(hands[j], results[j][1]["verts"].cpu().detach().numpy()[0], results[j][3], results[j][4]) for j in range(len(results))
         ]
 
         frame = (meshes, 1 if len(meshes)%2==0 else 2, det_frames[i], meta)
@@ -234,7 +314,7 @@ if __name__ == "__main__":
             frame = createframe(meshes=frame[0], mode=frame[1], frame=frame[2], meta=frame[3])
             frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2RGB)
 
-        cv2.imwrite(f"/home/cgalab/handobj/hand-detection-reconstruction/pkl_cache/final/{i}_frame.jpg", frame)
+        writer.write(frame)
         print(i)
         
         del frame

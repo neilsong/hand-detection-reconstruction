@@ -11,7 +11,7 @@ from mano_train.exputils import argutils
 
 from detection.detection import detection_init, detection, get_state_dict
 from multiprocessing import Process
-from crop import crop
+from .utils.crop import crop
 from mano_train.demo.preprocess import prepare_input, preprocess_frame
 import numpy as np
 import ray
@@ -22,7 +22,6 @@ from handobjectdatasets.viz2d import visualize_joints_2d_cv2
 from copy import deepcopy
 from mano_train.visualize import displaymano
 from mano_train.modelutils import modelio
-
 
 def forward_pass_3d(input_image, pred_obj=True, left=True):
     sample = {}

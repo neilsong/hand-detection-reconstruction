@@ -397,4 +397,4 @@ class HandNet(nn.Module):
         else:
             losses["total_loss"] = None
 
-        return total_loss, results, losses
+        return total_loss, results, losses, scale.unsqueeze(1).cpu().detach().numpy()[0][0][0], trans.unsqueeze(1).cpu().detach().numpy()
